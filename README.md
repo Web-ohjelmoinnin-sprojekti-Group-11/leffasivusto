@@ -1,59 +1,86 @@
-Leffasivusto – kehityskäynnistys
+# 🎬 Leffasivusto – kehityskäynnistys
 
-Esivaatimukset
-- Node 18+ ja npm
+## 📦 Esivaatimukset
+- Node.js v18+  
+- npm  
 
-Aloitus (ensikerta / päivitys)
-1) Kloonaa tai päivitä
-   git clone https://github.com/Web-ohjelmoinnin-sprojekti-Group-11/leffasivusto.git
-   cd leffasivusto
-   git pull origin main
+---
 
-2) Siirry app-kansioon
-   cd leffasivusto
+## 🚀 Aloitus (ensimmäinen kerta / päivitys)
 
-3) Asenna riippuvuudet (riittää jatkossa "npm install")
-   npm install
+1. Kloonaa tai päivitä repo:
 
-4) Käynnistä dev-palvelin
-   npm run dev
+```bash
+git clone https://github.com/Web-ohjelmoinnin-sprojekti-Group-11/leffasivusto.git
+cd leffasivusto
+git pull origin main
+```
 
-Ympäristömuuttujat (.env – ei versionhallintaan)
-Löytyy esimerkki .env.example
+2. Siirry projektin kansioon:
 
+```bash
+cd leffasivusto
+```
 
-Git bash
+3. Asenna riippuvuudet (riittää jatkossa pelkkä `npm install`):
 
-## Git pull 
+```bash
+npm install
+```
+
+4. Käynnistä dev-palvelin:
+
+```bash
+npm run dev
+```
+
+---
+
+## 🔑 Ympäristömuuttujat
+- `.env` (ei versionhallintaan)  
+- Löytyy esimerkki tiedostosta `.env.example`  
+
+---
+
+## 🖥️ Git Bash ohjeet
+
+### 🔄 Päivitys (pull)
 
 ```bash
 git checkout main
 git pull origin main
+```
 
-## Git push (muutosten vieminen)
+### 📤 Muutosten vieminen (push)
 
 ```bash
 git add .
 git commit -m "<kuvaus>"
 git push origin main
+```
 
+### 🌱 Uuden haaran luonti
 
-## Haaran luonti
-
+```bash
 git checkout -b TEPPO_TESTI
+```
 
-## Haaran vieminen
+### ☁️ Haaran vieminen GitHubiin
 
+```bash
 git add .
 git commit -m "kuvaus"
 git push origin TEPPO_TESTI
+```
 
-## Merge
+### 🔗 Haaran yhdistäminen (merge)
 
+Kun työ on valmis ja testattu:
+
+```bash
 git checkout main
 git pull origin main
 git merge TEPPO_TESTI
 git push origin main
-
-
+```
 
