@@ -12,14 +12,14 @@
 
 ```bash
 git clone https://github.com/Web-ohjelmoinnin-sprojekti-Group-11/leffasivusto.git
-cd leffasivusto_ohjelma
+cd leffasivusto
 git pull origin main
 ```
 
 2. Siirry projektin kansioon:
 
 ```bash
-cd leffasivusto
+cd leffasivusto_ohjelma
 ```
 
 3. Asenna riippuvuudet (riittää jatkossa pelkkä `npm install`):
