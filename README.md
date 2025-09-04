@@ -12,7 +12,7 @@
 
 ```bash
 git clone https://github.com/Web-ohjelmoinnin-sprojekti-Group-11/leffasivusto.git
-cd leffasivusto
+cd leffasivusto_ohjelma
 git pull origin main
 ```
 
