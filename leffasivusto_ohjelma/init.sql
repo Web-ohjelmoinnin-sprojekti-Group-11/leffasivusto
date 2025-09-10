@@ -63,3 +63,4 @@ CREATE TABLE group_content (
     text TEXT,
     role TEXT
 );
+

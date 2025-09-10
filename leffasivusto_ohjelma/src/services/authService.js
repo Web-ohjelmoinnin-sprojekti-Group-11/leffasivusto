@@ -1,43 +1,33 @@
-// authService.js — TOKENLESS DEFAULT
-// ------------------------------------------------------------
-// Nyt palauttaa selkeän virheen. Kun JWT on valmis, ota käyttöön
-// oikeat API-kutsut (alla kommentoituna).
+// src/services/authService.js
+import api from './api';
+import { setToken, clearToken } from './token';
 
-import api from './api'
-// Kun JWT valmis, Ota käyttöön:
-// import { setToken, clearToken } from './token'
-
+// --- AUTH API ---
 export async function loginApi(email, password) {
-  // TOKENLESS (STUB):
-  throw new Error('Login ei ole vielä käytössä (backend/JWT kesken).')
-
-  // Kun JWT valmis, Ota käyttöön:
-  /*
-  const { data } = await api.post('/auth/login', { email, password })
-  if (data?.accessToken) setToken(data.accessToken)
-  return data // { accessToken, user }
-  */
+  const { data } = await api.post('/auth/login', { email, password });
+  if (data?.accessToken) setToken(data.accessToken);
+  return data; // { accessToken, user }
 }
 
 export async function registerApi(email, password) {
-  // TOKENLESS (STUB):
-  throw new Error('Register ei ole vielä käytössä (backend/JWT kesken).')
+  const { data } = await api.post('/auth/register', { email, password });
+  if (data?.accessToken) setToken(data.accessToken);
+  return data; // { accessToken, user }
+}
 
-  // Kun JWT valmis, Ota käyttöön:
-  /*
-  const { data } = await api.post('/auth/register', { email, password })
-  if (data?.accessToken) setToken(data.accessToken)
-  return data // { accessToken, user }
-  */
+export async function refreshApi() {
+  const { data } = await api.post('/auth/refresh'); 
+  if (data?.accessToken) setToken(data.accessToken);
+  return data; // { accessToken }
+}
+
+export async function meApi() {
+  const { data } = await api.get('/auth/me'); // suojattu reitti (Bearer)
+  return data; // { user }
 }
 
 export async function logoutApi() {
-  // TOKENLESS (STUB):
-  return
-
-  // Kun JWT valmis, Ota käyttöön:
-  /*
-  await api.post('/auth/logout')
-  clearToken()
-  */
+  await api.post('/auth/logout'); 
+  clearToken();                   
+  return { ok: true };
 }

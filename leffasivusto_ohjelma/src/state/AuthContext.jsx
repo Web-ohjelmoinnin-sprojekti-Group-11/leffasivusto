@@ -1,136 +1,97 @@
-// AuthContext.jsx — TOKENLESS DEFAULT
-// ------------------------------------------------------------
-// Tämä versio toimii ilman tokenia (stub).
-// Kun JWT on valmis, poista STUB-KOHDAT ja Ota käyttöön
-// -merkityt rivit (sekä lisää api+authService -muutokset alla).
+// src/state/AuthContext.jsx
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import * as authController from '../controllers/authController';
+import { getToken, setToken, clearToken } from '../services/token';
 
-import { createContext, useContext, useMemo, useState, useEffect } from 'react'
-// Ota käyttöön JWT-valmis versioissa:
-// import api from '../services/api'
-// import { getToken, setToken, clearToken } from '../services/token'
-import * as authController from '../controllers/authController'
-
-const AuthContext = createContext()
+const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null)
-  const [authOpen, setAuthOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
+  const [user, setUser] = useState(null);
+  const [authOpen, setAuthOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  // ===== App start (TOKENLESS): ei tehdä mitään =====
-  // Kun JWT valmis, Ota käyttöön:
-  /*
+  // AINA sivun latauksessa: yritä uusia access-token (refresh-cookie kulkee automaattisesti).
   useEffect(() => {
-    const at = getToken()
-    if (!at) return
-    let dead = false
-    ;(async () => {
+    let cancelled = false;
+
+    const bootstrap = async () => {
       try {
-        const { data } = await api.get('/auth/me')
-        if (!dead) setUser(data?.user || null)
-      } catch {
-        if (!dead) { clearToken(); setUser(null) }
+        console.log('[Auth] bootstrap → /auth/refresh');
+        const refreshed = await authController.refresh?.();
+        if (refreshed?.accessToken) {
+          setToken(refreshed.accessToken);
+          console.log('[Auth] refreshed access OK');
+        } else {
+          console.log('[Auth] refresh returned no token');
+        }
+      } catch (e) {
+        console.log('[Auth] refresh failed', e?.response?.status);
+        clearToken();
       }
-    })()
-    return () => { dead = true }
-  }, [])
-  */
 
-  // ===== 401 → avaa login (TOKENLESS: ei tarvita) =====
-  // Kun JWT valmis, Ota käyttöön:
-  /*
-  useEffect(() => {
-    const id = api.interceptors.response.use(r => r, (err) => {
-      if (err?.response?.status === 401) setAuthOpen(true)
-      return Promise.reject(err)
-    })
-    return () => api.interceptors.response.eject(id)
-  }, [])
-  */
+      // Hae käyttäjä uudella/olemassa olevalla accessilla
+      try {
+        const me = await authController.me();
+        if (!cancelled) setUser(me?.user || null);
+      } catch {
+        clearToken();
+        if (!cancelled) setUser(null);
+      }
+    };
 
-  // ===== Toiminnot =====
+    bootstrap();
+    return () => { cancelled = true; };
+  }, []);
+
   const login = async (email, password) => {
-    // TOKENLESS (STUB): heitetään selkeä virhe
-    setLoading(true); setError(null)
+    setLoading(true); setError(null);
     try {
-      throw new Error('Kirjautuminen ei ole vielä käytössä (backend/JWT kesken).')
+      const { accessToken, user } = await authController.login(email, password);
+      if (!accessToken) throw new Error('Token puuttuu palvelimen vastauksesta');
+      setUser(user || null);
+      setAuthOpen(false);
+      return { ok: true };
     } catch (e) {
-      setError(e.message)
-      throw e
+      setError(e?.response?.data?.error || e.message || 'Kirjautuminen epäonnistui');
+      return { ok: false, error: e };
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-
-    // Kun JWT valmis, korvaa yllä oleva koko funktio tällä:
-    /*
-    setLoading(true); setError(null)
-    try {
-      const { accessToken, user } = await authController.login(email, password)
-      if (!accessToken) throw new Error('Token puuttuu')
-      setToken(accessToken)
-      setUser(user || null)
-      setAuthOpen(false)
-    } catch (e) {
-      setError(e?.message || 'Kirjautuminen epäonnistui')
-      throw e
-    } finally {
-      setLoading(false)
-    }
-    */
-  }
+  };
 
   const register = async (email, password) => {
-    // TOKENLESS (STUB)
-    setLoading(true); setError(null)
+    setLoading(true); setError(null);
     try {
-      throw new Error('Rekisteröityminen ei ole vielä käytössä (backend/JWT kesken).')
+      const { accessToken, user } = await authController.register(email, password);
+      if (!accessToken) throw new Error('Token puuttuu palvelimen vastauksesta');
+      setUser(user || null);
+      setAuthOpen(false);
+      return { ok: true };
     } catch (e) {
-      setError(e.message)
-      throw e
+      setError(e?.response?.data?.error || e.message || 'Rekisteröityminen epäonnistui');
+      return { ok: false, error: e };
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-
-    // Kun JWT valmis, korvaa yllä oleva koko funktio tällä:
-    /*
-    setLoading(true); setError(null)
-    try {
-      const { accessToken, user } = await authController.register(email, password)
-      if (!accessToken) throw new Error('Token puuttuu')
-      setToken(accessToken)
-      setUser(user || null)
-      setAuthOpen(false)
-    } catch (e) {
-      setError(e?.message || 'Rekisteröityminen epäonnistui')
-      throw e
-    } finally {
-      setLoading(false)
-    }
-    */
-  }
+  };
 
   const logout = async () => {
-    // TOKENLESS (STUB)
-    setUser(null)
-
-    // Kun JWT valmis, Ota käyttöön:
-    /*
-    await authController.logout()
-    clearToken()
-    setUser(null)
-    */
-  }
+    try { await authController.logout(); } finally {
+      clearToken();
+      setUser(null);
+    }
+  };
 
   const value = useMemo(() => ({
     user,
-    isAuthenticated: !!user,                  // JWT-valmiissa voi tarkistaa myös getToken()
+    isAuthenticated: !!user && !!getToken(),
     login, register, logout,
     authOpen, setAuthOpen,
     loading, error
-  }), [user, authOpen, loading, error])
+  }), [user, authOpen, loading, error]);
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-export const useAuth = () => useContext(AuthContext)
+export const useAuth = () => useContext(AuthContext);
