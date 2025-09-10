@@ -1,0 +1,27 @@
+:root {
+  /* Dark (default) */
+  --bg: #0f1115;
+  --fg: #e6e6e6;
+  --card: #151823;
+  --border: #23283b;
+  --primary: #0d6efd;
+}
+
+:root[data-theme="pink"] {
+  --bg: #fff0f6;
+  --fg: #2a2139;
+  --card: #ffe3ef;
+  --border: #ffc2d1;
+  --primary: #ff2e88;
+}
+
+/* Bootstrap kevyt override */
+body {
+  background-color: var(--bg) !important;
+  color: var(--fg) !important;
+}
+.card { background-color: var(--card) !important; border-color: var(--border) !important; }
+.navbar, .modal-content { background-color: var(--card) !important; }
+.btn-primary { background-color: var(--primary); border-color: var(--primary); }
+.form-control, .form-select { background-color: var(--bg); color: var(--fg); border-color: var(--border); }
+.list-group-item { background-color: var(--card); color: var(--fg); }
