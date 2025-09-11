@@ -1,3 +1,67 @@
+/* index.css */
+/* Perus */
 html, body, #root { height: 100%; }
+body { overflow-x: hidden; }             /* estä vaakaskrolli full-bleedissä */
 img { max-width: 100%; display: block; }
 .ratio.ratio-2x3 { --bs-aspect-ratio: calc(100% * 3 / 2); }
+
+
+.hero-bleed {
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+}
+
+/* Näytä koko kuva (ei croppaa), mutta rajoita korkeutta ~7× header */
+.hero-img {
+  width: 100%;
+  height: auto;                          /* contain-käytös: ei leikkausta */
+  display: block;
+  border-radius: 0px;                   /* pyöristys itse kuvalle */
+  filter: saturate(1.05);
+  max-height: calc(var(--header-h, 64px) * 10);  /* headerin korkeus mitataan Header.jsx:ssä */
+}
+
+/* ---------- HEADER ---------- */
+/* Pienennä hakua jotta Menu/Login/Theme mahtuvat paremmin */
+.navbar .form-control {
+  max-width: 720px;                      /* yläraja leveydelle */
+  border-radius: 9999px;
+}
+
+/* Togglen ja pienten nappien pyöristys */
+.navbar .btn { border-radius: 9999px; }
+
+/* ---------- NAV AKTIIVINEN ---------- */
+:root[data-bs-theme="light"] .nav-link.active {
+  background: rgba(225, 29, 72, 0.12);
+  border-radius: 9999px;
+  font-weight: 600;
+}
+:root[data-bs-theme="dark"] .nav-link.active {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+  font-weight: 600;
+}
+
+/* ---------- OFFCANVAS ---------- */
+.offcanvas .nav-link { padding: 8px 12px; border-radius: 10px; }
+.offcanvas .nav-link:hover { background: rgba(127,127,127,0.08); }
+.offcanvas .nav-link.active { font-weight: 700; }
+
+/* ---------- PIENTÄ SIISTINTÄ ---------- */
+.card { border-radius: 16px; }
+.card, .offcanvas, .navbar {
+  box-shadow: 0 2px 12px rgba(0,0,0,0.03);
+}
+
+/* Näppäimistöfokus näkyväksi */
+:focus-visible {
+  outline: 3px solid rgba(99, 102, 241, 0.6);
+  outline-offset: 2px;
+}
+
+/* Vähemmän animaatioita, jos käyttäjä pyytää */
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
