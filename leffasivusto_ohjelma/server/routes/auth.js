@@ -81,4 +81,34 @@ router.post("/login", async (req, res) => {
   }
 });
 
+/* -------------------- delete account -------------------- */
+router.delete("/delete", verifyJWT, async (req, res) => {
+  try {
+    const userId = req.user.user_id;
+
+    const { rowCount } = await pool.query(
+      "DELETE FROM users WHERE user_id = $1",
+      [userId]
+    );
+
+    if (!rowCount) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Tyhjennetään refreshToken-cookie
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      path: "/"
+    });
+
+    console.log(`DELETE: user_id=${userId} removed`);
+    return res.json({ message: "User deleted successfully" });
+  } catch (err) {
+    console.error("Delete-virhe:", err);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
 export default router;
