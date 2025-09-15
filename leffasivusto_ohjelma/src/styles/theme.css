@@ -1,27 +1,59 @@
+/* src/styles/theme.css */
+
+/* Dark (default) */
 :root {
-  /* Dark (default) */
-  --bg: #0f1115;
-  --fg: #e6e6e6;
-  --card: #151823;
+  /* PBDM-värit darkissa */
+  --bg:     #0f1115;
+  --fg:     #e6e6e6;
+  --card:   #151823;    /* surface */
   --border: #23283b;
-  --primary: #0d6efd;
+
+  /* Brand (darkissa käytetään sinistä) */
+  --primary:      #3B82F6;
+  --primary-600:  #2563EB;
+  --primary-rgb:  59,130,246;
+
+  /* Bootstrap hookit */
+  --bs-body-bg:          var(--bg);
+  --bs-body-color:       var(--fg);
+  --bs-border-color:     var(--border);
+  --bs-primary:          var(--primary);
+  --bs-primary-rgb:      var(--primary-rgb);
+  --bs-link-color:       var(--primary);
+  --bs-link-hover-color: var(--primary-600);
 }
 
+/* Pink (light) */
 :root[data-theme="pink"] {
-  --bg: #fff0f6;
-  --fg: #2a2139;
-  --card: #ffe3ef;
+  --bg:     #fff0f6;
+  --fg:     #2a2139;
+  --card:   #ffe3ef;
   --border: #ffc2d1;
-  --primary: #ff2e88;
+
+  /* Brand pinkissä */
+  --primary:      #ff2e88;  /* teillä ollut käytössä tämä sävy */
+  --primary-600:  #e83b7b;
+  --primary-rgb:  255,46,136;
+
+  /* Bootstrap hookit */
+  --bs-body-bg:          var(--bg);
+  --bs-body-color:       var(--fg);
+  --bs-border-color:     var(--border);
+  --bs-primary:          var(--primary);
+  --bs-primary-rgb:      var(--primary-rgb);
+  --bs-link-color:       var(--primary);
+  --bs-link-hover-color: var(--primary-600);
 }
 
-/* Bootstrap kevyt override */
+/* Kevyet Bootstrap-override’t (pidetään minimissä) */
 body {
-  background-color: var(--bg) !important;
-  color: var(--fg) !important;
+  background-color: var(--bg);
+  color: var(--fg);
 }
-.card { background-color: var(--card) !important; border-color: var(--border) !important; }
-.navbar, .modal-content { background-color: var(--card) !important; }
-.btn-primary { background-color: var(--primary); border-color: var(--primary); }
+.card { background-color: var(--card); border-color: var(--border); }
+.navbar, .modal-content { background-color: var(--card); }
 .form-control, .form-select { background-color: var(--bg); color: var(--fg); border-color: var(--border); }
 .list-group-item { background-color: var(--card); color: var(--fg); }
+
+/* Nappien perusväri teemasta: index.css hienosäätää hover/active */
+.btn-primary { background-color: var(--primary); border-color: var(--primary); }

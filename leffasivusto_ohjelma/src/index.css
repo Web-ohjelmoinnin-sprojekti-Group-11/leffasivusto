@@ -1,67 +1,169 @@
-/* index.css */
-/* Perus */
+/* src/index.css */
+
+/* 1) Fontti */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
+/* 2) Perus */
 html, body, #root { height: 100%; }
-body { overflow-x: hidden; }             /* estä vaakaskrolli full-bleedissä */
+body {
+  overflow-x: hidden;
+  font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
 img { max-width: 100%; display: block; }
 .ratio.ratio-2x3 { --bs-aspect-ratio: calc(100% * 3 / 2); }
 
+/* 3) Pinnat */
+.card, .offcanvas {
+  background: var(--card);
+  border-color: var(--border);
+  box-shadow: 0 2px 12px rgba(0,0,0,.03);
+}
+.card { border-radius: 16px; }
 
-.hero-bleed {
+/* Navbarin linkit + aktiivinen pilleri */
+.navbar .nav-link,
+.navbar .navbar-brand,
+.navbar .navbar-text { color: var(--fg); }
+.navbar .nav-link:hover { color: rgba(var(--primary-rgb), .95); }
+.navbar .nav-link.active {
+  background: rgba(var(--bs-primary-rgb), .14);
+  border-radius: 9999px;
+  font-weight: 600;
+  color: var(--fg);
+}
+
+/* 4) Hero full-bleed + overlay-haku */
+.hero-bleed{
   width: 100vw;
   margin-left: calc(50% - 50vw);
   margin-right: calc(50% - 50vw);
+  position: relative;
+  overflow: hidden;
 }
-
-/* Näytä koko kuva (ei croppaa), mutta rajoita korkeutta ~7× header */
-.hero-img {
+.hero-img{
   width: 100%;
-  height: auto;                          /* contain-käytös: ei leikkausta */
+  height: auto;
   display: block;
-  border-radius: 0px;                   /* pyöristys itse kuvalle */
   filter: saturate(1.05);
-  max-height: calc(var(--header-h, 64px) * 10);  /* headerin korkeus mitataan Header.jsx:ssä */
+  max-height: calc(var(--header-h, 64px) * 10);
+}
+.hero-overlay{
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: min(5%, 28px);
+  width: min(720px, 92vw);
+}
+.hero-search .input-group > .form-control{ border-radius: 9999px 0 0 9999px; }
+.hero-search .input-group > .btn{ border-radius: 0 9999px 9999px 0; }
+
+@media (max-width: 575.98px){
+  .hero-overlay{
+    position: static;
+    transform: none;
+    width: 100%;
+    padding-inline: 12px;
+    margin-top: 12px;
+  }
 }
 
-/* ---------- HEADER ---------- */
-/* Pienennä hakua jotta Menu/Login/Theme mahtuvat paremmin */
-.navbar .form-control {
-  max-width: 720px;                      /* yläraja leveydelle */
+/* 5) Napit teemavärissä (hover/active pink/blue) */
+.btn-primary{
+  --bs-btn-color:#fff;
+  --bs-btn-bg:var(--primary);
+  --bs-btn-border-color:var(--primary);
+  --bs-btn-hover-color:#fff;
+  --bs-btn-hover-bg:var(--primary-600);
+  --bs-btn-hover-border-color:var(--primary-600);
+  --bs-btn-active-color:#fff;
+  --bs-btn-active-bg:var(--primary-600);
+  --bs-btn-active-border-color:var(--primary-600);
+  --bs-btn-focus-shadow-rgb:var(--bs-primary-rgb);
+}
+.btn-outline-primary{
+  --bs-btn-color:var(--primary);
+  --bs-btn-border-color:var(--primary);
+  --bs-btn-hover-color:var(--primary-600);
+  --bs-btn-hover-bg:rgba(var(--bs-primary-rgb), .12);
+  --bs-btn-hover-border-color:var(--primary);
+  --bs-btn-active-bg:rgba(var(--bs-primary-rgb), .16);
+  --bs-btn-active-border-color:var(--primary-600);
+  --bs-btn-focus-shadow-rgb:var(--bs-primary-rgb);
+}
+/* tummaan sopiva outline-secondary */
+:root[data-theme="dark"] .btn-outline-secondary{
+  --bs-btn-color:var(--fg);
+  --bs-btn-border-color:rgba(255,255,255,.35);
+  --bs-btn-hover-bg:rgba(255,255,255,.08);
+  --bs-btn-hover-border-color:rgba(255,255,255,.6);
+}
+
+/* 6) Form controlit */
+.form-control{
+  background-color: var(--bg);
+  color: var(--fg);
+  border-color: var(--border);
+}
+.form-control::placeholder{ color: #9ea3af; }
+/* Hero-haussa darkissa hiukan tummempi */
+:root:not([data-theme="pink"]) .hero-search .form-control{
+  background-color: rgba(0,0,0,.35);
+  border-color: rgba(255,255,255,.08);
+}
+
+/* 7) Filter “chips” */
+.filter-chip{
+  border: 1px solid var(--bs-border-color);
+  background: var(--bg);
+  color: var(--fg);
   border-radius: 9999px;
+  padding: 6px 12px;
+  font-weight: 500;
+  transition: all .15s ease;
+}
+.filter-chip:hover{
+  background: rgba(var(--bs-primary-rgb), .08);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.filter-chip.active{
+  background: rgba(var(--bs-primary-rgb), .12);
+  border-color: var(--primary);
+  color: var(--primary);
 }
 
-/* Togglen ja pienten nappien pyöristys */
-.navbar .btn { border-radius: 9999px; }
-
-/* ---------- NAV AKTIIVINEN ---------- */
-:root[data-bs-theme="light"] .nav-link.active {
-  background: rgba(225, 29, 72, 0.12);
-  border-radius: 9999px;
-  font-weight: 600;
-}
-:root[data-bs-theme="dark"] .nav-link.active {
-  background: rgba(255, 255, 255, 0.12);
-  border-radius: 9999px;
-  font-weight: 600;
+/* 8) A11y & reduced motion */
+:focus-visible{ outline: 3px solid rgba(99,102,241,.6); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce){
+  *{ transition:none !important; animation:none !important; }
 }
 
-/* ---------- OFFCANVAS ---------- */
-.offcanvas .nav-link { padding: 8px 12px; border-radius: 10px; }
-.offcanvas .nav-link:hover { background: rgba(127,127,127,0.08); }
-.offcanvas .nav-link.active { font-weight: 700; }
-
-/* ---------- PIENTÄ SIISTINTÄ ---------- */
-.card { border-radius: 16px; }
-.card, .offcanvas, .navbar {
-  box-shadow: 0 2px 12px rgba(0,0,0,0.03);
+/* 9) INTRO + REVEAL-ANIMAATIOT (kuten nyt) */
+html.intro-open .reveal,
+html.intro-open .hero-search {
+  opacity: 0 !important;
+  transform: translateY(8px);
+  pointer-events: none;
 }
+.intro-only { opacity: 1; transition: opacity .25s ease; }
+html.intro-done .intro-only { opacity: 0; pointer-events: none; display: none; }
 
-/* Näppäimistöfokus näkyväksi */
-:focus-visible {
-  outline: 3px solid rgba(99, 102, 241, 0.6);
-  outline-offset: 2px;
+@keyframes revealUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
 }
+html.intro-done .reveal {
+  animation: revealUp 1.5s cubic-bezier(.22,.61,.36,1) forwards;
+}
+html.intro-done .reveal.delay-1 { animation-delay: .04s; }
+html.intro-done .reveal.delay-2 { animation-delay: .10s; }
+html.intro-done .reveal.delay-3 { animation-delay: .16s; }
+html.intro-done .reveal.delay-4 { animation-delay: .22s; }
+html.intro-done .reveal.delay-5 { animation-delay: .28s; }
+html.intro-done .reveal.delay-6 { animation-delay: .34s; }
 
-/* Vähemmän animaatioita, jos käyttäjä pyytää */
-@media (prefers-reduced-motion: reduce) {
-  * { transition: none !important; animation: none !important; }
+@media (prefers-reduced-motion: reduce){
+  html.intro-done .reveal { animation:none; opacity:1; transform:none; }
 }
