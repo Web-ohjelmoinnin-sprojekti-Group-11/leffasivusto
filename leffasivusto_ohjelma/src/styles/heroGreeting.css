@@ -1,0 +1,74 @@
+/* Keskitetty overlay herokuvan päällä */
+.hero-greeting {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none; /* ei estä klikkauksia */
+  z-index: 3;          /* pieni nosto varmuuden vuoksi */
+}
+
+/* Kaunokirjoitus + brändigradientti (fallback: yksivärinen) */
+.hero-greeting__text {
+  position: relative;              /* pseudo-elementtejä ja strokea varten */
+  display: inline-block;
+  font-family: "Great Vibes", cursive;
+  font-weight: 400;
+  line-height: 1;
+  text-align: center;
+  font-size: clamp(36px, 6vw, 72px);
+
+  /* Gradientti tekstiin */
+  background: linear-gradient(
+    90deg,
+    rgba(var(--bs-primary-rgb), 1) 0%,
+    rgba(var(--bs-primary-rgb), .65) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+
+  /* LUETTAVUUS: stroke + monikerroksinen varjo */
+  /* Pinkissä (vaalea) vaalea stroke toimii hyvin, darkissa tumma */
+  -webkit-text-stroke: 1px rgba(255,255,255,.85);
+  text-shadow:
+    0 1px 0 rgba(255,255,255,.25),
+    0 2px 12px rgba(0,0,0,.35),
+    0 8px 28px rgba(0,0,0,.25);
+}
+
+/* Dark-teema: tumma stroke on useimmiten selkeämpi */
+:root:not([data-theme="pink"]) .hero-greeting__text {
+  -webkit-text-stroke: 1px rgba(0,0,0,.75);
+  text-shadow:
+    0 1px 0 rgba(0,0,0,.35),
+    0 2px 14px rgba(0,0,0,.5),
+    0 8px 28px rgba(0,0,0,.35);
+}
+
+/* --- ANIMAATIOT (jo olemassa) ---------------------------------- */
+@keyframes hg-pop-in {
+  from { opacity: 0; transform: translateY(8px) scale(.98); }
+  to   { opacity: 1; transform: translateY(0)   scale(1);   }
+}
+@keyframes hg-fade-out {
+  to { opacity: 0; transform: translateY(-4px) scale(.995); }
+}
+
+/* Pysyvä variantti: jää näkyviin (ei fade-outia) */
+.hero-greeting__text--static {
+  animation: hg-pop-in .6s cubic-bezier(.22,.61,.36,1) forwards;
+}
+/* Automaattisesti häviävä variantti (tarvittaessa introon) */
+.hero-greeting__text--auto {
+  animation:
+    hg-pop-in .6s cubic-bezier(.22,.61,.36,1) forwards,
+    hg-fade-out .6s ease-in 1.9s forwards;
+}
+
+/* Vähemmän liikettä -tila */
+@media (prefers-reduced-motion: reduce) {
+  .hero-greeting__text,
+  .hero-greeting__text--static,
+  .hero-greeting__text--auto { animation: none; }
+}
