@@ -1,25 +1,30 @@
-import { Card, Button } from 'react-bootstrap'
+// src/components/movies/MovieCard.jsx
+import React from "react";
+import PropTypes from "prop-types";
 
-export default function MovieCard({ movie }) {
-  const poster = movie?.poster_path
-    ? `https://image.tmdb.org/t/p/w342${movie.poster_path}`
-    : 'https://via.placeholder.com/342x513?text=No+Image'
-
-  return (
-    <Card className="h-100">
-      <div className="ratio ratio-2x3">
-        <img src={poster} alt={movie.title} className="object-fit-cover" />
+const MovieCard = ({ movie }) => (
+  <div className="card h-100 shadow-sm">
+    {movie.poster ? (
+      <img src={movie.poster} className="card-img-top" alt={movie.title} />
+    ) : (
+      <div className="card-img-top d-flex align-items-center justify-content-center bg-light" style={{height: "375px"}}>
+        <span className="text-muted">No image</span>
       </div>
-      <Card.Body>
-        <Card.Title className="fs-6">{movie.title}</Card.Title>
-        <Card.Text className="small mb-2">
-          {movie.release_date?.slice(0,4)} • {movie.vote_average?.toFixed(1)}
-        </Card.Text>
-        <div className="d-flex justify-content-between">
-          <Button size="sm" variant="outline-primary">Details</Button>
-          <Button size="sm" variant="outline-warning">☆ Favorite</Button>
-        </div>
-      </Card.Body>
-    </Card>
-  )
-}
+    )}
+    <div className="card-body">
+      <h6 className="card-title mb-1">{movie.title}</h6>
+      <small className="text-muted">
+        {movie.releaseDate?.slice(0, 4)} • ⭐ {movie.vote?.toFixed(1)}
+      </small>
+      <p className="card-text mt-2 text-truncate" title={movie.overview}>
+        {movie.overview}
+      </p>
+    </div>
+  </div>
+);
+
+MovieCard.propTypes = {
+  movie: PropTypes.object.isRequired,
+};
+
+export default MovieCard;
