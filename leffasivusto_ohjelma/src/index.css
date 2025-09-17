@@ -1,5 +1,3 @@
-/* src/index.css */
-
 /* 1) Fontti */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
 
@@ -41,6 +39,7 @@ img { max-width: 100%; display: block; }
   margin-right: calc(50% - 50vw);
   position: relative;
   overflow: hidden;
+  isolation: isolate; /* pseudo-elementtien sekoitukset siisteiksi */
 }
 .hero-img{
   width: 100%;
@@ -69,6 +68,25 @@ img { max-width: 100%; display: block; }
   }
 }
 
+/* 4b) PEHMEÄ sweep myös normaalissa näkymässä
+   - aktivoi lisäämällä .glow-sweep heron wrapperiin (HeroSection)
+   - intro.css ylikirjoittaa tämän vahvemmalla versiolla intro-tilassa */
+.hero-bleed.glow-sweep::after{
+  content: ""; position: absolute; inset: -8% -25%; z-index: 1; pointer-events: none;
+  mix-blend-mode: screen;
+  background: linear-gradient(100deg,
+    rgba(255,255,255,0) 35%,
+    rgba(255,255,255,0.16) 50%,
+    rgba(255,255,255,0) 65%
+  );
+  transform: translateX(-120%) skewX(-12deg);
+  animation: sweepGlowSoft 12s ease-in-out infinite;
+}
+@keyframes sweepGlowSoft {
+  0% { transform: translateX(-120%) skewX(-12deg); }
+  60%,100% { transform: translateX(120%) skewX(-12deg); }
+}
+
 /* 5) Napit teemavärissä (hover/active pink/blue) */
 .btn-primary{
   --bs-btn-color:#fff;
@@ -92,7 +110,6 @@ img { max-width: 100%; display: block; }
   --bs-btn-active-border-color:var(--primary-600);
   --bs-btn-focus-shadow-rgb:var(--bs-primary-rgb);
 }
-/* tummaan sopiva outline-secondary */
 :root[data-theme="dark"] .btn-outline-secondary{
   --bs-btn-color:var(--fg);
   --bs-btn-border-color:rgba(255,255,255,.35);
@@ -107,7 +124,6 @@ img { max-width: 100%; display: block; }
   border-color: var(--border);
 }
 .form-control::placeholder{ color: #9ea3af; }
-/* Hero-haussa darkissa hiukan tummempi */
 :root:not([data-theme="pink"]) .hero-search .form-control{
   background-color: rgba(0,0,0,.35);
   border-color: rgba(255,255,255,.08);
@@ -138,32 +154,4 @@ img { max-width: 100%; display: block; }
 :focus-visible{ outline: 3px solid rgba(99,102,241,.6); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce){
   *{ transition:none !important; animation:none !important; }
-}
-
-/* 9) INTRO + REVEAL-ANIMAATIOT (kuten nyt) */
-html.intro-open .reveal,
-html.intro-open .hero-search {
-  opacity: 0 !important;
-  transform: translateY(8px);
-  pointer-events: none;
-}
-.intro-only { opacity: 1; transition: opacity .25s ease; }
-html.intro-done .intro-only { opacity: 0; pointer-events: none; display: none; }
-
-@keyframes revealUp {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: none; }
-}
-html.intro-done .reveal {
-  animation: revealUp 1.5s cubic-bezier(.22,.61,.36,1) forwards;
-}
-html.intro-done .reveal.delay-1 { animation-delay: .04s; }
-html.intro-done .reveal.delay-2 { animation-delay: .10s; }
-html.intro-done .reveal.delay-3 { animation-delay: .16s; }
-html.intro-done .reveal.delay-4 { animation-delay: .22s; }
-html.intro-done .reveal.delay-5 { animation-delay: .28s; }
-html.intro-done .reveal.delay-6 { animation-delay: .34s; }
-
-@media (prefers-reduced-motion: reduce){
-  html.intro-done .reveal { animation:none; opacity:1; transform:none; }
 }
