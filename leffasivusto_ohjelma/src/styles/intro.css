@@ -1,23 +1,23 @@
 /* =========================================================
    INTRO-tyylit (vain intro-tilassa)
    - reveal-porrastus muun sisällön esille tuloon
-   - pinkki "wipe" -overlay, joka haalistuu 2.5s
-   - glow-sweep vain intro-tilassa (valinnainen)
-   - CTA katoaa välittömästi klikatessa
+   - pinkki "wipe" -overlay (2.5s)
+   - glow-sweep vahvana intron aikana
+   - CTA katoaa heti klikatessa
    ========================================================= */
 
-/* Piilota kaikki "reveal" ja heron hakukenttä intro-tilassa */
+/* Piilota "reveal"-elementit ja heron hakukenttä intro-tilassa */
 html.intro-open .reveal { opacity: 0; transform: translateY(8px); pointer-events: none; }
 html.intro-open .hero-search { opacity: 0; transform: translateY(8px); pointer-events: none; }
 
-/* CTA saa pienen hengityksen intro-tilassa (valinnainen) */
+/* CTA:n kevyt "hengitys" intro-tilassa (valinnainen) */
 html.intro-open .btn-cta { animation: introBreath 2.2s ease-in-out infinite; }
 @keyframes introBreath {
   0%,100% { transform: translateZ(0) scale(1);   filter: saturate(1); }
   50%     { transform: translateZ(0) scale(1.02); filter: saturate(1.05); }
 }
 
-/* *** UUSI: CTA katoaa heti kun klikkaat (intro-leaving) *** */
+/* CTA katoaa välittömästi, kun intro käynnistyy */
 html.intro-leaving .btn-cta {
   opacity: 0;
   transform: scale(.96) translateY(2px);
@@ -26,15 +26,15 @@ html.intro-leaving .btn-cta {
   pointer-events: none;
 }
 
-/* Kun intro on merkitty DONE, käynnistä reveal (perus 0.9s + porrastus) */
+/* Kun intro valmistui juuri nyt, ajetaan kertaluonteinen reveal-animaatio */
 @keyframes revealUp { from {opacity:0; transform:translateY(8px);} to {opacity:1; transform:none;} }
-html.intro-done .reveal { animation: revealUp .9s ease forwards; }
-html.intro-done .reveal.delay-1 { animation-delay: .10s; }
-html.intro-done .reveal.delay-2 { animation-delay: .25s; }
-html.intro-done .reveal.delay-3 { animation-delay: .40s; }
-html.intro-done .reveal.delay-4 { animation-delay: .55s; }
-html.intro-done .reveal.delay-5 { animation-delay: .70s; }
-html.intro-done .reveal.delay-6 { animation-delay: .85s; }
+html.intro-just-done .reveal { animation: revealUp 1.5s cubic-bezier(.22,.61,.36,1) forwards; }
+html.intro-just-done .reveal.delay-1 { animation-delay: .04s; }
+html.intro-just-done .reveal.delay-2 { animation-delay: .10s; }
+html.intro-just-done .reveal.delay-3 { animation-delay: .16s; }
+html.intro-just-done .reveal.delay-4 { animation-delay: .22s; }
+html.intro-just-done .reveal.delay-5 { animation-delay: .28s; }
+html.intro-just-done .reveal.delay-6 { animation-delay: .34s; }
 
 /* ---------- Pinkki "wipe" poistuttaessa intosta (2.5 s) ---------- */
 .intro-wipe {
@@ -42,34 +42,36 @@ html.intro-done .reveal.delay-6 { animation-delay: .85s; }
   inset: 0;
   z-index: 9999;
   pointer-events: none;
-  background: var(--bg, #FFF1F6); /* käytä teeman pinkkiä taustaa jos olemassa */
-  opacity: 0;
-  transition: opacity .001s linear; /* pidä DOM:ssa mutta näkymätön */
+  background: var(--bg, #FFF1F6);
+  opacity: 0;                          /* pidä DOM:ssa mutta näkymättömänä */
 }
 
-/* Kun IntroContext lisää html:ään .intro-leaving, haalistetaan pinkki pois 2.5 s */
 @keyframes pinkFadeOut { from { opacity: 1; } to { opacity: 0; } }
 html.intro-leaving .intro-wipe {
-  opacity: 1;                   /* peitä heti */
-  animation: pinkFadeOut 2.5s ease forwards;  /* <- 2.5 s wipen kesto */
+  opacity: 1;                          /* peitä heti */
+  animation: pinkFadeOut 2.5s ease forwards;
 }
 
-/* ---------- Glow-sweep vain intro-tilassa (valinnainen) ---------- */
+/* ---------- Glow-sweep (VAHVA) vain intro-tilassa ---------- */
 html.intro-open .hero-bleed { position: relative; isolation: isolate; }
 html.intro-open .hero-bleed::before {
-  content: "";
-  position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none;
   background: radial-gradient(120% 140% at 50% 35%, rgba(0,0,0,0) 58%, rgba(0,0,0,.22) 100%);
 }
 
+/* Vahva valopyyhkäisy */
 html.intro-open .hero-bleed.glow-sweep::after {
   content: ""; position: absolute; inset: -10% -30%; z-index: 2; pointer-events: none;
   mix-blend-mode: screen;
-  background: linear-gradient(100deg, rgba(255,255,255,0) 35%, rgba(255,255,255,0.25) 50%, rgba(255,255,255,0) 65%);
+  background: linear-gradient(100deg,
+    rgba(255,255,255,0) 35%,
+    rgba(255,255,255,0.28) 50%,
+    rgba(255,255,255,0) 65%
+  );
   transform: translateX(-120%) skewX(-12deg);
-  animation: sweepGlow 7s ease-in-out infinite;
+  animation: sweepGlowStrong 7s ease-in-out infinite;
 }
-@keyframes sweepGlow {
+@keyframes sweepGlowStrong {
   0% { transform: translateX(-120%) skewX(-12deg); }
   55%,100% { transform: translateX(120%) skewX(-12deg); }
 }
@@ -78,6 +80,6 @@ html.intro-open .hero-bleed.glow-sweep::after {
 @media (prefers-reduced-motion: reduce) {
   html.intro-open .btn-cta { animation: none !important; }
   html.intro-open .hero-bleed.glow-sweep::after { animation: none !important; }
-  html.intro-done .reveal { animation: none !important; opacity: 1; transform: none; }
+  html.intro-just-done .reveal { animation: none !important; opacity: 1; transform: none; }
   html.intro-leaving .intro-wipe { animation: none !important; opacity: 0; }
 }

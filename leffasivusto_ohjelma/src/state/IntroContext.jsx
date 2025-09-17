@@ -1,47 +1,76 @@
-// src/state/IntroContext.jsx
-import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { createContext, useContext, useEffect, useRef, useState } from 'react'
 
 const IntroContext = createContext()
 
-export function IntroProvider({ children }) {
-  const [introDone, setIntroDone] = useState(() =>
-    sessionStorage.getItem('introDone') === '1'
-  )
-  const leavingRef = useRef(false)
+/** Vaihda tähän 'heavy' | 'light' kun haluat vaihtaa moodia. */
+const INTRO_MODE = 'heavy'  // <-- raskas intro käyttöön
 
+// Raskaan intron ajoitukset
+const WIPE_MS   = 2500   // pinkin wipe-haalistuksen kesto
+const PAUSE_MS  = 500    // lyhyt tauko wipen jälkeen ennen reveal-animaatiota
+// Kummassakin moodissa käytetty reveal-kesto (index.css: revealUp ~1.5s)
+const REVEAL_MS = 1500
+
+export function IntroProvider({ children }) {
+  // Ei pysyvää muistia: intro näytetään joka latauksella
+  const [introDone, setIntroDone] = useState(false)
+  const timers = useRef([])
+
+  const pushTimer = (id) => timers.current.push(id)
+
+  // Hallitse <html>-luokkia navigoinneissa ja elinkaaressa
   useEffect(() => {
     const html = document.documentElement
-    if (introDone) {
-      html.classList.remove('intro-open', 'intro-leaving')
-      html.classList.add('intro-done')
-    } else {
+    if (!introDone) {
       html.classList.add('intro-open')
-      html.classList.remove('intro-done', 'intro-leaving')
+      html.classList.remove('intro-leaving', 'intro-just-done')
+    } else {
+      html.classList.remove('intro-open', 'intro-leaving')
+    }
+    return () => {
+      ['intro-open', 'intro-leaving', 'intro-just-done'].forEach(c => html.classList.remove(c))
+      timers.current.forEach(clearTimeout)
     }
   }, [introDone])
 
   const completeIntro = () => {
-    if (introDone || leavingRef.current) return
-    leavingRef.current = true
-
-    const WIPE_MS  = 2500  // pink fade kesto
-    const PAUSE_MS = 500   // lyhyt tauko wipen jälkeen
-
     const html = document.documentElement
-    html.classList.add('intro-leaving')   // -> nappi katoaa heti, pinkki wipe alkaa
 
-    // 2.5 s wipe + 0.5 s tauko -> sitten reveal
-    setTimeout(() => {
-      sessionStorage.setItem('introDone', '1')
+    if (INTRO_MODE === 'light') {
+      // Kevyt: nappi pois heti, kertaluokkainen reveal
+      html.classList.remove('intro-open')
+      html.classList.add('intro-just-done')
+      setIntroDone(true)
+      pushTimer(setTimeout(() => {
+        html.classList.remove('intro-just-done')
+      }, REVEAL_MS + 100))
+      return
+    }
+
+    // Raskas: estä tuplaklikkaukset
+    if (html.classList.contains('intro-leaving')) return
+
+    // Nappi pois heti + käynnistä pinkki wipe (CSS animoi .intro-leaving .intro-wipe)
+    html.classList.add('intro-leaving')
+
+    // Odota wipe + tauko -> sitten varsinaiset sisääntulo-animaatiot
+    pushTimer(setTimeout(() => {
       setIntroDone(true)
       html.classList.remove('intro-open', 'intro-leaving')
-      html.classList.add('intro-done')
-      leavingRef.current = false
-    }, WIPE_MS + PAUSE_MS)
+
+      // Kertaluokkainen reveal
+      html.classList.add('intro-just-done')
+      pushTimer(setTimeout(() => {
+        html.classList.remove('intro-just-done')
+      }, REVEAL_MS + 100))
+    }, WIPE_MS + PAUSE_MS))
   }
 
-  const value = useMemo(() => ({ introDone, completeIntro }), [introDone])
-  return <IntroContext.Provider value={value}>{children}</IntroContext.Provider>
+  return (
+    <IntroContext.Provider value={{ introDone, completeIntro }}>
+      {children}
+    </IntroContext.Provider>
+  )
 }
 
 export const useIntro = () => useContext(IntroContext)
