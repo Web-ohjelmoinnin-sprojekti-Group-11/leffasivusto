@@ -4,12 +4,12 @@ import { fetchTrending, fetchSearch } from "../controllers/movieController";
 
 /**
  * Yleishook: jos query on tyhjä -> trending, muuten -> search (multi).
- * @param {object} opts
- * @param {string} [opts.query]   - Hakusana; tyhjä => trending
- * @param {number} [opts.page=1]  - Sivunumero (vain haussa)
- * @param {boolean} [opts.enabled=true] - Voiko haku käynnistyä
+ * Laajennettu: optional filter { year, minVote, genres: number[] }.
+ *  - year: number (esim. 2025)
+ *  - minVote: number (esim. 8)
+ *  - genres: TMDB-genreID:t (esim. [878, 99, 16])
  */
-export function useMovies({ query = "", page = 1, enabled = true } = {}) {
+export function useMovies({ query = "", page = 1, enabled = true, filter } = {}) {
   const [movies, setMovies] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -32,34 +32,37 @@ export function useMovies({ query = "", page = 1, enabled = true } = {}) {
 
     try {
       if (isSearch) {
+        // Search: välitetään myös filter backendille (jos sellainen on)
         const { results, totalPages: tp } = await fetchSearch(q, page, {
           signal: controller.signal,
+          filter,
         });
         setMovies(results);
         setTotalPages(tp || 1);
       } else {
-        const list = await fetchTrending({ signal: controller.signal });
+        // Trending: jos filteriä annettu -> pyydetään suodatettu trending backendiltä
+        const list = await fetchTrending({
+          signal: controller.signal,
+          filter,
+        });
         setMovies(list);
         setTotalPages(1);
       }
     } catch (e) {
-      // Jos peruutettiin, ei ilmoiteta virhettä
       if (e?.name !== "CanceledError" && e?.name !== "AbortError") {
         setError("Datan haku epäonnistui.");
-        // eslint-disable-next-line no-console
         console.error(e);
       }
     } finally {
       setLoading(false);
     }
-  }, [enabled, isSearch, q, page]);
+  }, [enabled, isSearch, q, page, filter]);
 
   useEffect(() => {
     load();
     return () => abortRef.current?.abort();
   }, [load]);
 
-  // API pintaan myös manuaalista uudelleenhakua varten
   const refetch = useCallback(() => load(), [load]);
 
   return useMemo(
@@ -68,7 +71,7 @@ export function useMovies({ query = "", page = 1, enabled = true } = {}) {
   );
 }
 
-// Mukavuus-wrapperit
+// Mukavuus-wrapperit – säilytetään entiset
 export const useTrendingMovies = (enabled = true) =>
   useMovies({ query: "", page: 1, enabled });
 
