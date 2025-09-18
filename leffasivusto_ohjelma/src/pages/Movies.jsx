@@ -6,7 +6,7 @@ import MovieGrid from "../components/movies/MovieGrid";
 import SearchBar from "../components/search/SearchBar";
 import DetailModal from "../components/movies/DetailModal";
 
-/* --- apu: robusti tunnistus oliomuodoille --- */
+/* --- apu: robusti tunnistus --- */
 const getYear = (m) =>
   (m.releaseDate && Number(String(m.releaseDate).slice(0, 4))) ||
   (m.first_air_date && Number(String(m.first_air_date).slice(0, 4))) ||
@@ -17,18 +17,17 @@ const getTitle = (m) => (m.title || m.name || "").toString();
 
 const isTitle = (m) =>
   m.type === "title" || m.mediaType === "movie" || m.mediaType === "tv" ||
-  (!!m.releaseDate && !m.type); // fallback: meillä on julkaisu-pvm => title
+  (!!m.releaseDate && !m.type);
 
-const isMovie = (m) => (m.mediaType === "movie") || (isTitle(m) && !m.mediaType); // trending: movie
-const isTv    = (m) => m.mediaType === "tv";
-
+const isMovie = (m) => m.mediaType === "movie" || (isTitle(m) && !m.mediaType);
+const isTv = (m) => m.mediaType === "tv";
 const isPerson = (m) => m.type === "person" || m.mediaType === "person";
 
 const dept = (m) =>
   m.department || m.knownForDept || m.known_for_department || m.subtitle || "";
 
-const isActor     = (m) => isPerson(m) && /Acting/i.test(dept(m));
-const isDirector  = (m) => isPerson(m) && /Directing/i.test(dept(m));
+const isActor = (m) => isPerson(m) && /Acting/i.test(dept(m));
+const isDirector = (m) => isPerson(m) && /Directing/i.test(dept(m));
 
 export default function Movies() {
   const [params, setParams] = useSearchParams();
@@ -38,47 +37,40 @@ export default function Movies() {
   const page = Number(params.get("page") || 1);
   const isSearch = q.length > 0;
 
-  // UI: tyyppisuodatin + järjestys (vain titles)
   const [typeFilter, setTypeFilter] = useState("all"); // all | movie | tv | actor | director
   const [sortKey, setSortKey] = useState("year");      // year | rating | alpha
 
-  // KLIIKKAUS: valittu kortti modalille
   const [selected, setSelected] = useState(null);
 
   const { movies, loading, error, totalPages } = isSearch
     ? useSearchMovies(q, page)
     : useTrendingMovies(true);
 
-  // 1) Suodata tyypin mukaan
+  // 1) Suodata
   const filtered = useMemo(() => {
     switch (typeFilter) {
       case "movie":    return movies.filter((m) => isTitle(m) && (isMovie(m) || m.mediaType === "movie"));
       case "tv":       return movies.filter((m) => isTitle(m) && isTv(m));
       case "actor":    return movies.filter((m) => isActor(m));
       case "director": return movies.filter((m) => isDirector(m));
-      default:         return movies.slice(); // all
+      default:         return movies.slice();
     }
   }, [movies, typeFilter]);
 
   // 2) Järjestä
   const sorted = useMemo(() => {
-    // “All”: ensin titles vuosi ↓, sitten people nimi A–Z
     if (typeFilter === "all") {
       const titles = filtered.filter(isTitle).sort((a, b) => getYear(b) - getYear(a));
       const people = filtered.filter(isPerson).sort((a, b) => getTitle(a).localeCompare(getTitle(b)));
       return [...titles, ...people];
     }
-
-    // “Movies/Series”: sort avaimen mukaan
     if (typeFilter === "movie" || typeFilter === "tv") {
       const s = filtered.slice();
-      if (sortKey === "year")   s.sort((a, b) => getYear(b) - getYear(a));                // uusin ensin
-      if (sortKey === "rating") s.sort((a, b) => getVote(b) - getVote(a));                // korkein ensin
-      if (sortKey === "alpha")  s.sort((a, b) => getTitle(a).localeCompare(getTitle(b))); // A–Ö
+      if (sortKey === "year")   s.sort((a, b) => getYear(b) - getYear(a));
+      if (sortKey === "rating") s.sort((a, b) => getVote(b) - getVote(a));
+      if (sortKey === "alpha")  s.sort((a, b) => getTitle(a).localeCompare(getTitle(b)));
       return s;
     }
-
-    // “Actors/Directors”: nimi A–Z
     return filtered.slice().sort((a, b) => getTitle(a).localeCompare(getTitle(b)));
   }, [filtered, typeFilter, sortKey]);
 
@@ -124,19 +116,19 @@ export default function Movies() {
           <span className="small text-muted">Sort by:</span>
           <div className="btn-group btn-group-sm" role="group" aria-label="Sort">
             <button
-              className={`btn ${sortKey === "year" ? "btn-secondary" : "btn-outline-secondary"}`}
+              className={`btn ${sortKey === "year" ? "btn-primary" : "btn-outline-primary"}`}
               onClick={() => setSortKey("year")}
             >
               Year ↓
             </button>
             <button
-              className={`btn ${sortKey === "rating" ? "btn-secondary" : "btn-outline-secondary"}`}
+              className={`btn ${sortKey === "rating" ? "btn-primary" : "btn-outline-primary"}`}
               onClick={() => setSortKey("rating")}
             >
               Rating ↓
             </button>
             <button
-              className={`btn ${sortKey === "alpha" ? "btn-secondary" : "btn-outline-secondary"}`}
+              className={`btn ${sortKey === "alpha" ? "btn-primary" : "btn-outline-primary"}`}
               onClick={() => setSortKey("alpha")}
             >
               Title A–Z
@@ -148,41 +140,33 @@ export default function Movies() {
       {loading && <div>Ladataan…</div>}
       {error && <div className="text-danger">{error}</div>}
       {!loading && !error && (
-        <MovieGrid
-          movies={sorted}
-          onSelect={(m) => setSelected(m)}
-        />
+        <MovieGrid movies={sorted} onSelect={(m) => setSelected(m)} />
       )}
 
       {/* Nuolinapit sivutukseen (vain haussa) */}
       {isSearch && totalPages > 1 && (
-        <div className="d-flex justify-content-center align-items-center gap-2 my-3">
+        <div className="pager-pink d-flex justify-content-center align-items-center gap-2 my-3">
           <button
-            className="btn btn-outline-secondary"
+            className="btn btn-primary"
             title="Previous"
             disabled={page <= 1}
             onClick={() => gotoPage(page - 1)}
           >
-            ◀
+            ‹
           </button>
           <span className="small">Page {page} / {totalPages}</span>
           <button
-            className="btn btn-outline-secondary"
+            className="btn btn-primary"
             title="Next"
             disabled={page >= totalPages}
             onClick={() => gotoPage(page + 1)}
           >
-            ▶
+            ›
           </button>
         </div>
       )}
 
-      {/* Detail modal */}
-      <DetailModal
-        show={!!selected}
-        item={selected}
-        onHide={() => setSelected(null)}
-      />
+      <DetailModal show={!!selected} item={selected} onHide={() => setSelected(null)} />
     </div>
   );
 }
