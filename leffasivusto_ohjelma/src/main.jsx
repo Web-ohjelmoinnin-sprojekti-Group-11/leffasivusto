@@ -10,7 +10,8 @@ import './styles/heroGreeting.css';
 import { ThemeProvider } from './state/ThemeContext.jsx'
 import { AuthProvider } from './state/AuthContext.jsx'
 import { IntroProvider } from './state/IntroContext.jsx'  
-import IntroFX from './components/intro/IntroFX.jsx'      
+import IntroFX from './components/intro/IntroFX.jsx'
+import "./styles/movies.css"      
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

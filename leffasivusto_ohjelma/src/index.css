@@ -155,3 +155,4 @@ img { max-width: 100%; display: block; }
 @media (prefers-reduced-motion: reduce){
   *{ transition:none !important; animation:none !important; }
 }
+

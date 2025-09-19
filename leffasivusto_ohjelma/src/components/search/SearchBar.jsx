@@ -25,8 +25,8 @@ export default function SearchBar({ size = "lg", className = "", onSubmit }) {
     >
       <InputGroup size={size}>
         <Form.Control
-          placeholder="Search movies..."
-          aria-label="Search movies"
+          placeholder="Search ..."
+          aria-label="Search"
           value={q}
           onChange={(e) => setQ(e.target.value)}
         />

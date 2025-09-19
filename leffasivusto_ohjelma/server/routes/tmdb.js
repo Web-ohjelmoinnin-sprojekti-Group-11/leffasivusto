@@ -15,7 +15,7 @@ router.get("/trending", async (_req, res) => {
   }
 });
 
-// GET /api/tmdb/search?q=...&page=1  (multi: movie+tv+person)
+// GET /api/tmdb/search?q=...&page=1 (multi)
 router.get("/search", async (req, res) => {
   try {
     const q = (req.query.q || "").trim();
@@ -27,15 +27,85 @@ router.get("/search", async (req, res) => {
         query: q,
         page,
         include_adult: false,
-        language: "en-US", // halutessa "en-US"
+        language: "en-US",
       },
     });
-
     res.json(data);
   } catch (err) {
     console.error("TMDB search error:", err?.response?.data || err.message);
     res.status(502).json({ error: "Search failed" });
   }
 });
+
+// GET /api/tmdb/title/:type/:id (movie|tv)
+router.get("/title/:type/:id", async (req, res) => {
+  const { type, id } = req.params;
+  if (!["movie", "tv"].includes(type)) return res.status(400).json({ error: "Bad type" });
+  try {
+    const [detail, credits] = await Promise.all([
+      tmdb.get(`/${type}/${id}`),
+      tmdb.get(`/${type}/${id}/credits`),
+    ]);
+    res.json({ detail: detail.data, credits: credits.data });
+  } catch (err) {
+    console.error("TMDB title details error:", err?.response?.data || err.message);
+    res.status(502).json({ error: "Failed to fetch title details" });
+  }
+});
+
+// GET /api/tmdb/person/:id
+router.get("/person/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const [person, credits] = await Promise.all([
+      tmdb.get(`/person/${id}`),
+      tmdb.get(`/person/${id}/combined_credits`),
+    ]);
+    res.json({ person: person.data, credits: credits.data });
+  } catch (err) {
+    console.error("TMDB person details error:", err?.response?.data || err.message);
+    res.status(502).json({ error: "Failed to fetch person details" });
+  }
+});
+
+// GET /api/tmdb/person/:id/credits
+router.get("/person/:id/credits", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { data } = await tmdb.get(`/person/${id}/combined_credits`);
+    res.json(data);
+  } catch (err) {
+    console.error("TMDB person credits error:", err?.response?.data || err.message);
+    res.status(502).json({ error: "Failed to fetch person credits" });
+  }
+});
+
+// GET /api/tmdb/discover?year=&minRating=&genres=&page=
+router.get("/discover", async (req, res) => {
+  try {
+    const { year, minRating, genres, page = 1 } = req.query;
+
+    const params = {
+      sort_by: "popularity.desc",
+      include_adult: false,
+      include_video: false,
+      page: Number(page),
+      with_original_language: "en",
+    };
+    if (year) params.primary_release_year = Number(year);
+    if (minRating) params["vote_average.gte"] = Number(minRating);
+    if (genres) params.with_genres = String(genres);
+
+    const { data } = await tmdb.get("/discover/movie", { params });
+    res.json(data);
+  } catch (err) {
+    console.error("TMDB discover error:", err?.response?.data || err.message);
+    res.status(502).json({ error: "Failed to fetch discover" });
+  }
+});
+
+
+
+
 
 export default router;

@@ -1,19 +1,18 @@
 /* src/styles/theme.css */
 
-/* Dark (default) */
+/* === Dark (default) === */
 :root {
-  /* PBDM-värit darkissa */
   --bg:     #0f1115;
   --fg:     #e6e6e6;
-  --card:   #151823;    /* surface */
+  --card:   #151823;
   --border: #23283b;
 
-  /* Brand (darkissa käytetään sinistä) */
+  /* brand (dark = blue) */
   --primary:      #3B82F6;
   --primary-600:  #2563EB;
   --primary-rgb:  59,130,246;
 
-  /* Bootstrap hookit */
+  /* bootstrap hooks */
   --bs-body-bg:          var(--bg);
   --bs-body-color:       var(--fg);
   --bs-border-color:     var(--border);
@@ -23,19 +22,18 @@
   --bs-link-hover-color: var(--primary-600);
 }
 
-/* Pink (light) */
+/* === Pink (light) === */
 :root[data-theme="pink"] {
   --bg:     #fff0f6;
   --fg:     #2a2139;
   --card:   #ffe3ef;
   --border: #ffc2d1;
 
-  /* Brand pinkissä */
-  --primary:      #ff2e88;  /* teillä ollut käytössä tämä sävy */
+  /* brand (pink) */
+  --primary:      #ff2e88;
   --primary-600:  #e83b7b;
   --primary-rgb:  255,46,136;
 
-  /* Bootstrap hookit */
   --bs-body-bg:          var(--bg);
   --bs-body-color:       var(--fg);
   --bs-border-color:     var(--border);
@@ -45,15 +43,105 @@
   --bs-link-hover-color: var(--primary-600);
 }
 
-/* Kevyet Bootstrap-override’t (pidetään minimissä) */
-body {
-  background-color: var(--bg);
-  color: var(--fg);
-}
+/* --- General surfaces --- */
+body { background-color: var(--bg); color: var(--fg); }
 .card { background-color: var(--card); border-color: var(--border); }
 .navbar, .modal-content { background-color: var(--card); }
 .form-control, .form-select { background-color: var(--bg); color: var(--fg); border-color: var(--border); }
 .list-group-item { background-color: var(--card); color: var(--fg); }
 
-/* Nappien perusväri teemasta: index.css hienosäätää hover/active */
-.btn-primary { background-color: var(--primary); border-color: var(--primary); }
+/* --- Buttons: use theme brand --- */
+.btn-primary {
+  --bs-btn-color: #fff;
+  --bs-btn-bg: var(--primary);
+  --bs-btn-border-color: var(--primary);
+  --bs-btn-hover-bg: var(--primary-600);
+  --bs-btn-hover-border-color: var(--primary-600);
+  --bs-btn-active-bg: var(--primary-600);
+  --bs-btn-active-border-color: var(--primary-600);
+  --bs-btn-focus-shadow-rgb: var(--bs-primary-rgb);
+}
+
+.btn-outline-primary {
+  --bs-btn-color: var(--primary);
+  --bs-btn-border-color: var(--primary);
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: var(--primary);
+  --bs-btn-hover-border-color: var(--primary);
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: var(--primary-600);
+  --bs-btn-active-border-color: var(--primary-600);
+  --bs-btn-focus-shadow-rgb: var(--bs-primary-rgb);
+}
+
+/* Button groups: mark active toggles with solid primary */
+.btn-group .btn.active,
+.btn-check:checked + .btn {
+  background-color: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+/* Accessibility: focus ring uses brand color */
+.btn:focus, .btn:focus-visible {
+  box-shadow: 0 0 0 .2rem rgba(var(--bs-primary-rgb), .35);
+}
+
+/* Yhtenäistä napit heti teeman värisiksi (ei sinistä väliväriä) */
+.btn-outline-primary {
+  color: var(--primary);
+  border-color: var(--primary);
+}
+.btn-outline-primary:hover,
+.btn-outline-primary:focus,
+.btn-outline-primary.active {
+  color: #fff;
+  background-color: var(--primary);
+  border-color: var(--primary);
+}
+
+/* Pienet “pill”-napit näyttämään yhtenäisiltä */
+.btn,
+.btn-group .btn {
+  border-radius: 0.6rem;
+}
+
+/* Themed pager buttons: force brand color in both themes */
+.pager-pink .btn {
+  --btn-bg: var(--primary);
+  --btn-bd: var(--primary);
+  --btn-fg: #fff;
+  background-color: var(--btn-bg) !important;
+  border-color: var(--btn-bd) !important;
+  color: var(--btn-fg) !important;
+  box-shadow: 0 0 0 0 rgba(var(--bs-primary-rgb), 0);
+}
+
+/* Disabled state keeps soft tint of brand */
+.pager-pink .btn:disabled,
+.pager-pink .btn.disabled {
+  background-color: rgba(var(--bs-primary-rgb), .35) !important;
+  border-color: rgba(var(--bs-primary-rgb), .35) !important;
+  color: #fff !important;
+  opacity: 1; /* override Bootstrap fade */
+  cursor: not-allowed;
+}
+
+/* Hover / focus / active – slightly darker brand */
+.pager-pink .btn:hover,
+.pager-pink .btn:focus,
+.pager-pink .btn:active,
+.pager-pink .btn:focus-visible {
+  background-color: var(--primary-600) !important;
+  border-color: var(--primary-600) !important;
+  color: #fff !important;
+  box-shadow: 0 0 0 .2rem rgba(var(--bs-primary-rgb), .25) !important;
+}
+
+/* If any of the pager buttons were outline, normalize them too */
+.pager-pink .btn-outline-primary {
+  background-color: var(--primary) !important;
+  border-color: var(--primary) !important;
+  color: #fff !important;
+}
+
