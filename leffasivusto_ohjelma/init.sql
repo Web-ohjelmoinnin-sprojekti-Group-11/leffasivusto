@@ -33,11 +33,16 @@ CREATE TABLE reviews (
 );
 
 -- näytösajat
-CREATE TABLE showtimes (
-    showtime_id SERIAL PRIMARY KEY,
-    movie_id TEXT NOT NULL, -- ulkoisen lähteen tunniste
-    theatre TEXT NOT NULL,
-    start_time TIMESTAMP NOT NULL
+CREATE TABLE IF NOT EXISTS showtimes (
+  id           SERIAL PRIMARY KEY,
+  movie_id     INT NOT NULL,
+  theatre_name VARCHAR(100) NOT NULL,
+  showtime     TIMESTAMP NOT NULL,
+  group_id     INT,  -- viittaus groups-tauluun
+  CONSTRAINT fk_showtimes_group
+    FOREIGN KEY (group_id)
+    REFERENCES groups(group_id)
+    ON DELETE CASCADE
 );
 
 -- suosikkilistat

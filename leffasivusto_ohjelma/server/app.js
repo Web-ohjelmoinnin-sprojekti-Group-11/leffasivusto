@@ -2,7 +2,10 @@
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+
 import authRoutes from "./routes/auth.js";
+import tmdbRoutes from "./routes/tmdb.js";
+import pool from "./db.js";
 
 const app = express();
 
@@ -12,7 +15,7 @@ app.set("trust proxy", 1);
 // CORS – lue sallitut origin(t) .env:stä, pilkuilla erotettuna
 const origins = (process.env.CORS_ORIGIN || "http://localhost:5173")
   .split(",")
-  .map(s => s.trim());
+  .map((s) => s.trim());
 
 app.use(cors({ origin: origins, credentials: true }));
 app.use(express.json());
@@ -20,9 +23,18 @@ app.use(cookieParser());
 
 // API-reitit
 app.use("/api/auth", authRoutes);
+app.use("/api/tmdb", tmdbRoutes);
 
-// Healthcheck
-app.get("/api/test", (_req, res) => res.json({ ok: true }));
+// Healthcheck (DB + palvelin)
+app.get("/api/test", async (_req, res) => {
+  try {
+    const result = await pool.query("SELECT NOW()");
+    res.json({ ok: true, dbTime: result.rows[0] });
+  } catch (err) {
+    console.error("Healthcheck error:", err);
+    res.status(500).json({ ok: false, error: "Database error" });
+  }
+});
 
 // 404
 app.use((req, res) => res.status(404).json({ error: "Not found" }));

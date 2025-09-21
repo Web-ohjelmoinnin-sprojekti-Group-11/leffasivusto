@@ -1,0 +1,61 @@
+/* --- Otsikko: yksi rivi, ellipsis --- */
+.movie-card .card-title {
+  font-weight: 700;
+  font-size: 1rem;
+  line-height: 1.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* --- Overview oletus (isoilla): 5 riviä) --- */
+.movie-card .card-text {
+  font-size: .85rem;
+  line-height: 1.3rem;
+  margin-top: 0.5rem;
+
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* 2/3 leveä modali */
+.modal-66w { max-width: 66vw; }
+@media (max-width: 992px) { .modal-66w { max-width: 92vw; } }
+
+
+/* jos komponentissa on jo .line-clamp-5, pidetään se mukana */
+.movie-card .card-text.line-clamp-5 { -webkit-line-clamp: 5; }
+
+/* --- Meta-teksti hieman pienemmäksi pienillä --- */
+.movie-meta { color: #6c757d; font-size: .9rem; }
+
+/* ≤ 1200px: 4 riviä */
+@media (max-width: 1200px) {
+  .movie-card .card-text,
+  .movie-card .card-text.line-clamp-5 { -webkit-line-clamp: 4; }
+}
+
+/* ≤ 992px: 3 riviä ja aavistuksen pienempi fontti */
+@media (max-width: 992px) {
+  .movie-card .card-text,
+  .movie-card .card-text.line-clamp-5 { -webkit-line-clamp: 3; }
+  .movie-card .card-text { font-size: .82rem; }
+  .movie-meta { font-size: .85rem; }
+  .movie-card .card-body { padding: .75rem .9rem; }
+}
+
+/* ≤ 768px: 2 riviä + tiiviimpi padding */
+@media (max-width: 768px) {
+  .movie-card .card-text,
+  .movie-card .card-text.line-clamp-5 { -webkit-line-clamp: 2; }
+  .movie-card .card-text { font-size: .8rem; }
+  .movie-meta { font-size: .82rem; }
+  .movie-card .card-body { padding: .6rem .8rem; }
+}
+
+/* ≤ 576px: 2 riviä + vielä aavistuksen pienempi teksti */
+@media (max-width: 576px) {
+  .movie-card .card-text { font-size: .78rem; }
+  .movie-meta { font-size: .8rem; }
+}
