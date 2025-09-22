@@ -1,0 +1,6 @@
+.cc-avatar {
+  width: 56px; height: 56px; border-radius: 50%;
+  display: grid; place-items: center; font-weight: 700;
+  border: 1px solid var(--border); background: var(--card);
+  color: var(--fg);
+}

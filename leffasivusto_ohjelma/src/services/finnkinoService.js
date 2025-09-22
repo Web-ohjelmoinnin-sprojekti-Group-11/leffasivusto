@@ -1,11 +1,18 @@
-import api from './api'
+import api from "./api";
 
-export async function getCities() {
-  const { data } = await api.get('/finnkino/cities')
-  return data
-}
+export const finnkinoApi = {
+  getCities: async () => {
+    const { data } = await api.get("/finnkino/cities");
+    return data;
+  },
+  getTheaters: async (area) => {
+    const { data } = await api.get("/finnkino/theaters", { params: { area } });
+    return data;
+  },
+  getShowtimes: async ({ area, theatreId, date }) => {
+    const { data } = await api.get("/finnkino/showtimes", { params: { area, theatreId, date } });
+    return data;
+  },
+};
 
-export async function getShowtimes(params) {
-  const { data } = await api.get('/finnkino/showtimes', { params })
-  return data
-}
+export default finnkinoApi;

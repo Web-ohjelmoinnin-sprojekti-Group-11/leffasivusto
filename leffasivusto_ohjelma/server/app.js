@@ -1,29 +1,92 @@
-// server/app.js
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 
 import authRoutes from "./routes/auth.js";
 import tmdbRoutes from "./routes/tmdb.js";
+import authExtraRoutes from "./routes/authExtra.js";
+import userRoutes from "./routes/user.js";
+import finnkinoRoutes from "./routes/finnkino.js";   // <— ADD
 import pool from "./db.js";
 
 const app = express();
 
-// Jos käytätte reverse proxyä (devissä ok)
 app.set("trust proxy", 1);
+app.disable("x-powered-by");
 
-// CORS – lue sallitut origin(t) .env:stä, pilkuilla erotettuna
-const origins = (process.env.CORS_ORIGIN || "http://localhost:5173")
-  .split(",")
-  .map((s) => s.trim());
-
+const origins = (process.env.CORS_ORIGIN || "http://localhost:5173").split(",").map(s => s.trim());
 app.use(cors({ origin: origins, credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
 
-// API-reitit
+// Existing
 app.use("/api/auth", authRoutes);
 app.use("/api/tmdb", tmdbRoutes);
+// New
+app.use("/api/auth", authExtraRoutes);
+app.use("/api/user", userRoutes);
+app.use("/api/finnkino", finnkinoRoutes);            // <— ADD
+
+app.get("/api/test", async (_req, res) => {
+  try {
+    const result = await pool.query("SELECT NOW()");
+    res.json({ ok: true, dbTime: result.rows[0] });
+  } catch (err) {
+    console.error("Healthcheck error:", err);
+    res.status(500).json({ ok: false, error: "Database error" });
+  }
+});
+
+app.use((req, res) => res.status(404).json({ error: "Not found" }));
+app.use((err, _req, res, _next) => {
+  console.error("Unhandled error:", err);
+  res.status(500).json({ error: "Server error" });
+});
+
+export default app;
+
+/* // FILE: server/app.js
+import express from "express";
+import cors from "cors";
+import cookieParser from "cookie-parser";
+
+import authRoutes from "./routes/auth.js";
+import tmdbRoutes from "./routes/tmdb.js";
+import authExtraRoutes from "./routes/authExtra.js"; // /api/auth/update, /api/auth/change-password
+import userRoutes from "./routes/user.js";  
+import finnkinoRoutes from "./routes/finnkino.js";          // /api/user/*
+import pool from "./db.js";
+
+const app = express();
+
+// Proxy-tieto (tarpeen esim. Heroku/Nginx)
+app.set("trust proxy", 1);
+// Piilota Express-versio
+app.disable("x-powered-by");
+
+// CORS – luetaan sallitut origin(t) .env:stä (pilkuilla eroteltu), sallitaan cookies/headerit
+const origins = (process.env.CORS_ORIGIN || "http://localhost:5173")
+  .split(",")
+  .map((s) => s.trim());
+
+app.use(
+  cors({
+    origin: origins,
+    credentials: true,
+  })
+);
+
+// Parserit
+app.use(express.json());
+app.use(cookieParser());
+
+// Olemassa olevat reitit
+app.use("/api/auth", authRoutes);
+app.use("/api/tmdb", tmdbRoutes);
+
+// Uudet reitit
+app.use("/api/auth", authExtraRoutes); // /api/auth/update, /api/auth/change-password
+app.use("/api/user", userRoutes);      // /api/user/favorites, /api/user/reviews, /api/user/history
 
 // Healthcheck (DB + palvelin)
 app.get("/api/test", async (_req, res) => {
@@ -46,3 +109,4 @@ app.use((err, _req, res, _next) => {
 });
 
 export default app;
+ */
