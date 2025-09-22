@@ -1,17 +1,23 @@
 {
   "name": "leffasivusto-backend",
+  "type": "module",
   "scripts": {
     "dev": "nodemon index.js",
     "start": "node index.js"
   },
   "dependencies": {
-    "express": "^4.19.2",
-    "dotenv": "^16.4.5",
-    "cors": "^2.8.5",
-    "cookie-parser": "^1.4.6",
-    "pg": "^8.11.3",
+    "axios": "^1.12.2",
     "bcrypt": "^5.1.1",
-    "jsonwebtoken": "^9.0.2"
+    "bootstrap": "^5.3.8",
+    "cookie-parser": "^1.4.6",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "fast-xml-parser": "^5.2.5",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.11.3",
+    "react-router-dom": "^7.9.1",
+    "undici": "^7.16.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.0"

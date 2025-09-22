@@ -16,7 +16,7 @@ export default function SidebarShowtimes() {
     return theatresRaw.filter((t) => {
       const name = t.name.toLowerCase();
       if (name.includes("valitse")) return false;
-      if (name.includes(",")) return false; 
+      if (name.includes(",")) return false;
       return true;
     });
   }, [theatresRaw]);
@@ -30,7 +30,6 @@ export default function SidebarShowtimes() {
     setSelectedDate(`${dd}.${mm}.${yyyy}`);
   }, []);
 
-
   const schedule = useSchedule(selectedArea, selectedDate);
 
   const cities = useMemo(() => {
@@ -42,13 +41,13 @@ export default function SidebarShowtimes() {
     return Array.from(set);
   }, [theatres]);
 
-  // Suodatetaan teatterit valitun kaupungin mukaan
+  // Teatterit valitun kaupungin mukaan
   const theatresForCity = useMemo(() => {
     if (!selectedCity) return [];
     return theatres.filter((t) => t.name.startsWith(selectedCity));
   }, [theatres, selectedCity]);
 
-  // Jos kaupungilla vain yksi teatteri, niin valitaan se automaattisesti
+  // Jos kaupungilla vain yksi teatteri, valitse se automaattisesti
   useEffect(() => {
     if (theatresForCity.length === 1) {
       setSelectedArea(theatresForCity[0].id);
@@ -57,7 +56,7 @@ export default function SidebarShowtimes() {
     }
   }, [theatresForCity]);
 
-  // Suodatetaan valitun päivämäärän mukaan aikataulu
+  // Suodata valitun päivämäärän mukaan
   const filteredSchedule = selectedDate
     ? schedule.filter((s) => s.date === selectedDate)
     : schedule;
@@ -66,7 +65,7 @@ export default function SidebarShowtimes() {
     <Card className="mb-3">
       <Card.Header>Finnkino Showtimes</Card.Header>
       <Card.Body className="d-grid gap-3">
-        {/* Kaupungin valintavalikko */}
+        {/* Kaupungin valinta */}
         <Form.Select
           value={selectedCity}
           onChange={(e) => setSelectedCity(e.target.value)}
@@ -79,7 +78,7 @@ export default function SidebarShowtimes() {
           ))}
         </Form.Select>
 
-        {/* Teatterin valintavalikko */}
+        {/* Teatterin valinta */}
         <Form.Select
           value={selectedArea}
           onChange={(e) => setSelectedArea(e.target.value)}
@@ -93,12 +92,10 @@ export default function SidebarShowtimes() {
           ))}
         </Form.Select>
 
-        {/* Kalenterivalikko */}
+        {/* Päivämäärä */}
         <Form.Control
           type="date"
-          value={
-            selectedDate ? selectedDate.split(".").reverse().join("-") : ""
-          }
+          value={selectedDate ? selectedDate.split(".").reverse().join("-") : ""}
           onChange={(e) => {
             if (!e.target.value) {
               setSelectedDate("");

@@ -1,20 +1,29 @@
-// src/routes/AppRoutes.jsx
 import { Routes, Route, Navigate } from "react-router-dom";
 import Home from "../pages/Home.jsx";
 import Movies from "../pages/Movies.jsx";
-// … muut importit
+import NotFound from "../pages/NotFound.jsx";
+import Profile from "../pages/Profile.jsx";
+import RequireAuth from "./RequireAuth.jsx";
 
 export default function AppRoutes() {
   return (
     <Routes>
-      {/* Pääreitti kotiin */}
       <Route path="/" element={<Home />} />
-      {/* /home tukee suoria kirjanmerkkejä */}
       <Route path="/home" element={<Navigate to="/" replace />} />
-      {/* Movies toimii edelleen */}
       <Route path="/movies" element={<Movies />} />
-      {/* 404 fallback */}
-      <Route path="*" element={<div className="text-center py-5">404 – Page not found</div>} />
+
+      <Route
+        path="/profile"
+        element={
+          <RequireAuth>
+            <Profile />
+          </RequireAuth>
+        }
+      />
+
+      <Route path="/404" element={<NotFound />} />
+      <Route path="*" element={<Navigate to="/404" replace />} />
     </Routes>
   );
 }
+
