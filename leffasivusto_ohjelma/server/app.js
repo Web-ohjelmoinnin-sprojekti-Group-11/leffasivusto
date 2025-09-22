@@ -5,6 +5,10 @@ import cookieParser from "cookie-parser";
 
 import authRoutes from "./routes/auth.js";
 import tmdbRoutes from "./routes/tmdb.js";
+import groupRoutes from "./routes/groups.js";
+import groupMembersRoutes from "./routes/group_members.js";
+import groupContentRoutes from "./routes/group_content.js";
+
 import pool from "./db.js";
 
 const app = express();
@@ -35,6 +39,11 @@ app.get("/api/test", async (_req, res) => {
     res.status(500).json({ ok: false, error: "Database error" });
   }
 });
+
+// ryhmäreitit
+app.use("/api/groups", groupRoutes);              // ryhmän hallinta
+app.use("/api/groups/members", groupMembersRoutes);  // jäsenten hallinta, invit jne
+app.use("/api/groups/content", groupContentRoutes);  // sisältö
 
 // 404
 app.use((req, res) => res.status(404).json({ error: "Not found" }));
