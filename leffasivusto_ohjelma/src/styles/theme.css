@@ -1,4 +1,4 @@
-/* src/styles/theme.css */
+/* === THEME (only theme variables & buttons) ============================== */
 
 /* === Dark (default) === */
 :root {
@@ -43,14 +43,17 @@
   --bs-link-hover-color: var(--primary-600);
 }
 
-/* --- General surfaces --- */
+/* --- General surfaces (theme-owned colors) --- */
 body { background-color: var(--bg); color: var(--fg); }
 .card { background-color: var(--card); border-color: var(--border); }
 .navbar, .modal-content { background-color: var(--card); }
 .form-control, .form-select { background-color: var(--bg); color: var(--fg); border-color: var(--border); }
 .list-group-item { background-color: var(--card); color: var(--fg); }
 
-/* --- Buttons: use theme brand --- */
+/* --- Buttons: unified brand look --- */
+.btn,
+.btn-group .btn { border-radius: .6rem; } /* yhteinen "pill" */
+
 .btn-primary {
   --bs-btn-color: #fff;
   --bs-btn-bg: var(--primary);
@@ -74,7 +77,7 @@ body { background-color: var(--bg); color: var(--fg); }
   --bs-btn-focus-shadow-rgb: var(--bs-primary-rgb);
 }
 
-/* Button groups: mark active toggles with solid primary */
+/* Toggle-ryhmien aktiivinen nappi täytetään brandilla */
 .btn-group .btn.active,
 .btn-check:checked + .btn {
   background-color: var(--primary);
@@ -82,31 +85,12 @@ body { background-color: var(--bg); color: var(--fg); }
   color: #fff;
 }
 
-/* Accessibility: focus ring uses brand color */
+/* A11y: focus ring käyttää brand-sävyä */
 .btn:focus, .btn:focus-visible {
   box-shadow: 0 0 0 .2rem rgba(var(--bs-primary-rgb), .35);
 }
 
-/* Yhtenäistä napit heti teeman värisiksi (ei sinistä väliväriä) */
-.btn-outline-primary {
-  color: var(--primary);
-  border-color: var(--primary);
-}
-.btn-outline-primary:hover,
-.btn-outline-primary:focus,
-.btn-outline-primary.active {
-  color: #fff;
-  background-color: var(--primary);
-  border-color: var(--primary);
-}
-
-/* Pienet “pill”-napit näyttämään yhtenäisiltä */
-.btn,
-.btn-group .btn {
-  border-radius: 0.6rem;
-}
-
-/* Themed pager buttons: force brand color in both themes */
+/* --- Pagerit: pakota brand heti (ei sinistä) --- */
 .pager-pink .btn {
   --btn-bg: var(--primary);
   --btn-bd: var(--primary);
@@ -117,17 +101,17 @@ body { background-color: var(--bg); color: var(--fg); }
   box-shadow: 0 0 0 0 rgba(var(--bs-primary-rgb), 0);
 }
 
-/* Disabled state keeps soft tint of brand */
+/* Disabled = pehmeä brändi, ei himmennystä */
 .pager-pink .btn:disabled,
 .pager-pink .btn.disabled {
   background-color: rgba(var(--bs-primary-rgb), .35) !important;
   border-color: rgba(var(--bs-primary-rgb), .35) !important;
   color: #fff !important;
-  opacity: 1; /* override Bootstrap fade */
+  opacity: 1;
   cursor: not-allowed;
 }
 
-/* Hover / focus / active – slightly darker brand */
+/* Hover/focus/active: hieman tummempi brandi */
 .pager-pink .btn:hover,
 .pager-pink .btn:focus,
 .pager-pink .btn:active,
@@ -138,10 +122,9 @@ body { background-color: var(--bg); color: var(--fg); }
   box-shadow: 0 0 0 .2rem rgba(var(--bs-primary-rgb), .25) !important;
 }
 
-/* If any of the pager buttons were outline, normalize them too */
+/* Jos pagerissa olisi outline-nappeja, tasoita nekin */
 .pager-pink .btn-outline-primary {
   background-color: var(--primary) !important;
   border-color: var(--primary) !important;
   color: #fff !important;
 }
-
