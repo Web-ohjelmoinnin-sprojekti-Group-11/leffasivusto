@@ -1,4 +1,6 @@
-/* --- Otsikko: yksi rivi, ellipsis --- */
+/* === MOVIE CARD (only card-specific rules) =============================== */
+
+/* Otsikko: yksi rivi, ellipsis */
 .movie-card .card-title {
   font-weight: 700;
   font-size: 1rem;
@@ -8,11 +10,11 @@
   text-overflow: ellipsis;
 }
 
-/* --- Overview oletus (isoilla): 5 riviä) --- */
+/* Overview – perusmuoto (kortti kiinni) */
 .movie-card .card-text {
   font-size: .85rem;
   line-height: 1.3rem;
-  margin-top: 0.5rem;
+  margin-top: .5rem;
 
   display: -webkit-box;
   -webkit-box-orient: vertical;
@@ -23,11 +25,10 @@
 .modal-66w { max-width: 66vw; }
 @media (max-width: 992px) { .modal-66w { max-width: 92vw; } }
 
-
 /* jos komponentissa on jo .line-clamp-5, pidetään se mukana */
 .movie-card .card-text.line-clamp-5 { -webkit-line-clamp: 5; }
 
-/* --- Meta-teksti hieman pienemmäksi pienillä --- */
+/* Meta-teksti hieman pienemmäksi pienillä */
 .movie-meta { color: #6c757d; font-size: .9rem; }
 
 /* ≤ 1200px: 4 riviä */
@@ -36,7 +37,7 @@
   .movie-card .card-text.line-clamp-5 { -webkit-line-clamp: 4; }
 }
 
-/* ≤ 992px: 3 riviä ja aavistuksen pienempi fontti */
+/* ≤ 992px: 3 riviä ja tiiviimpi */
 @media (max-width: 992px) {
   .movie-card .card-text,
   .movie-card .card-text.line-clamp-5 { -webkit-line-clamp: 3; }
@@ -54,8 +55,53 @@
   .movie-card .card-body { padding: .6rem .8rem; }
 }
 
-/* ≤ 576px: 2 riviä + vielä aavistuksen pienempi teksti */
+/* ≤ 576px */
 @media (max-width: 576px) {
   .movie-card .card-text { font-size: .78rem; }
   .movie-meta { font-size: .8rem; }
+}
+
+/* --- Hover-delayed overview reveal -------------------------------------- */
+/* Wrapper, jonka korkeutta animointiin käytetään (JS lisää .is-revealed 1.5 s jälkeen) */
+.movie-card .overview-wrap {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 420ms ease, margin-top 300ms ease;
+  margin-top: 0;
+}
+
+/* Kun kortti on "auki", varaa tilaa enintään ~15 riville. 
+   line-height: 1.3rem → 15 * 1.3rem = 19.5rem → lisätään hieman väljyyttä */
+.movie-card.is-revealed .overview-wrap {
+  max-height: 20.5rem;   /* ≈ 15 rows */
+  margin-top: .5rem;
+}
+
+/* Varsinainen tekstisisältö: liuku + haalistus */
+.movie-card .overview-content {
+  font-size: .85rem;
+  line-height: 1.3rem;
+  color: var(--fg);
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 300ms ease, transform 300ms ease;
+
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  /* revealed-tilassa sallitaan jopa 15 riviä – asetetaan varalta jo tässä,
+     mutta varsinainen rajoitus tulee wrapperin max-heightilla */
+  -webkit-line-clamp: 15;
+  overflow: hidden;
+}
+
+/* Kun wrap on auki, näytä sisältö */
+.movie-card.is-revealed .overview-content {
+  opacity: .92;
+  transform: translateY(0);
+}
+
+/* Pienemmillä ruuduilla vähemmän riviä/tilaa, ettei kortit kasva liikaa */
+@media (max-width: 768px) {
+  .movie-card.is-revealed .overview-wrap { max-height: 12rem; } /* ~9 riviä */
+  .movie-card .overview-content { -webkit-line-clamp: 9; }
 }
