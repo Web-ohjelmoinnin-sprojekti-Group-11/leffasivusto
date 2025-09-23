@@ -3,10 +3,6 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "packageManager": "npm@10.8.1",
-  "engines": {
-    "node": ">=20.11 <21"
-  },
   "scripts": {
     "dev": "nodemon index.js",
     "start": "node index.js"
@@ -27,10 +23,5 @@
   },
   "devDependencies": {
     "nodemon": "3.1.0"
-  },
-  "overrides": {
-    "axios": "1.12.2",
-    "fast-xml-parser": "5.2.5",
-    "bootstrap": "5.3.8"
   }
 }
