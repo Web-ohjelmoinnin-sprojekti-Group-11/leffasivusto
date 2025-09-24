@@ -6,7 +6,7 @@ import authRoutes from "./routes/auth.js";
 import tmdbRoutes from "./routes/tmdb.js";
 import authExtraRoutes from "./routes/authExtra.js";
 import userRoutes from "./routes/user.js";
-import finnkinoRoutes from "./routes/finnkino.js";   // <— ADD
+
 import pool from "./db.js";
 
 const app = express();
@@ -14,7 +14,10 @@ const app = express();
 app.set("trust proxy", 1);
 app.disable("x-powered-by");
 
-const origins = (process.env.CORS_ORIGIN || "http://localhost:5173").split(",").map(s => s.trim());
+const origins = (process.env.CORS_ORIGIN || "http://localhost:5173")
+  .split(",")
+  .map((s) => s.trim());
+
 app.use(cors({ origin: origins, credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
@@ -25,7 +28,6 @@ app.use("/api/tmdb", tmdbRoutes);
 // New
 app.use("/api/auth", authExtraRoutes);
 app.use("/api/user", userRoutes);
-app.use("/api/finnkino", finnkinoRoutes);            // <— ADD
 
 app.get("/api/test", async (_req, res) => {
   try {
@@ -44,6 +46,7 @@ app.use((err, _req, res, _next) => {
 });
 
 export default app;
+
 
 /* // FILE: server/app.js
 import express from "express";
@@ -98,6 +101,11 @@ app.get("/api/test", async (_req, res) => {
     res.status(500).json({ ok: false, error: "Database error" });
   }
 });
+
+// ryhmäreitit
+app.use("/api/groups", groupRoutes);              // ryhmän hallinta
+app.use("/api/groups/members", groupMembersRoutes);  // jäsenten hallinta, invit jne
+app.use("/api/groups/content", groupContentRoutes);  // sisältö
 
 // 404
 app.use((req, res) => res.status(404).json({ error: "Not found" }));
