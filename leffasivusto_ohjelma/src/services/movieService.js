@@ -27,3 +27,8 @@ export const discoverMovies = ({ year, minRating, genres, page = 1 } = {}) =>
   api
     .get("/tmdb/discover", { params: { year, minRating, genres, page } })
     .then((r) => r.data);
+
+export const getTitleById = (id) =>
+  api.get(`/tmdb/title/${id}`).then((r) => r.data?.detail ?? r.data);
+
+export default { getTitleById };

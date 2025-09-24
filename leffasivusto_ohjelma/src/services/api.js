@@ -1,20 +1,30 @@
 // src/services/api.js
-import axios from 'axios';
-import { getToken, setToken, clearToken } from './token';
+import axios from "axios";
+import { getToken, setToken, clearToken } from "./token";
 
+// Perusinstanssi API-kutsuille
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE || 'http://localhost:3001/api',
-  withCredentials: true, // tärkeä: refresh-cookie kulkee
+  baseURL: import.meta.env.VITE_API_BASE || "http://localhost:3001/api",
+  withCredentials: true,
 });
 
-// Authorization ennen pyyntöä
+// Lisäinstanssi VAIN refreshiä varten (ei interceptoreita)
+const refreshClient = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE || "http://localhost:3001/api",
+  withCredentials: true,
+});
+
+// Authorization ennen jokaista pyyntöä
 api.interceptors.request.use((cfg) => {
-  const at = getToken();
-  if (at) cfg.headers.Authorization = `Bearer ${at}`;
+  const at = getToken?.();
+  if (at) {
+    cfg.headers = cfg.headers || {};
+    cfg.headers.Authorization = `Bearer ${at}`;
+  }
   return cfg;
 });
 
-// 401 -> koeta päivittää access /auth/refresh:lla ja toista pyyntö
+// 401 → yritä kertaalleen /auth/refresh (single-flight), toista alkuperäinen
 let refreshing = null;
 api.interceptors.response.use(
   (res) => res,
@@ -22,26 +32,30 @@ api.interceptors.response.use(
     const orig = error.config;
     const status = error?.response?.status;
 
-    if (status !== 401 || orig?._retry) {
+    // Älä yritä refreshiä itse refresh-kutsuun tai muihin kuin 401-virheisiin
+    if (status !== 401 || orig?._retry || (orig?.url || "").includes("/auth/refresh")) {
       return Promise.reject(error);
     }
+
     orig._retry = true;
 
     try {
-      // huolehditaan, että vain yksi refresh-pyyntö kerrallaan
       if (!refreshing) {
-        // käytetään suoraan axiosia, mutta sama baseURL toimii myös `api.post(...)`
-        refreshing = api.post('/auth/refresh');
+        // käytetään refreshClientiä → ei mene tämän interceptorin läpi
+        refreshing = refreshClient.post("/auth/refresh");
       }
       const { data } = await refreshing;
       refreshing = null;
 
-      if (data?.accessToken) {
-        setToken(data.accessToken);
-        orig.headers.Authorization = `Bearer ${data.accessToken}`;
-        return api(orig); // toista alkuperäinen pyyntö
-      }
-      throw new Error('No accessToken from refresh');
+      const newAT = data?.accessToken;
+      if (!newAT) throw new Error("No accessToken from refresh");
+
+      setToken(newAT);
+
+      // toista alkuperäinen pyyntö uudella Authorizationilla
+      orig.headers = orig.headers || {};
+      orig.headers.Authorization = `Bearer ${newAT}`;
+      return api(orig);
     } catch (e) {
       refreshing = null;
       clearToken();
