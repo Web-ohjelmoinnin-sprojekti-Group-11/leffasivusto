@@ -8,7 +8,30 @@
   text-overflow: ellipsis;
 }
 
+<<<<<<< Updated upstream
 /* --- Overview oletus (isoilla): 5 riviä) --- */
+=======
+/* append to: src/styles/movies.css */
+
+/* Floating reactive heart button (bottom-right) */
+.movie-card { position: relative; }
+.floating-heart-btn {
+  position: absolute;
+  right: .5rem;
+  bottom: .5rem;
+  width: 40px; height: 40px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: none;
+  transition: transform 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
+  opacity: 0.95;
+}
+.floating-heart-btn:hover { transform: translateY(-1px) scale(1.05); }
+.floating-heart-btn:active { transform: scale(0.98); }
+.floating-heart-btn.is-active { color: var(--bs-danger); }
+.floating-heart-btn .heart-icon { display: block; }
+
+/* Overview – perusmuoto (kortti kiinni) */
+>>>>>>> Stashed changes
 .movie-card .card-text {
   font-size: .85rem;
   line-height: 1.3rem;
