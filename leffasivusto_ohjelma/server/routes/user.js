@@ -5,19 +5,17 @@ import { verifyJWT } from "../middleware/auth.js";
 
 const router = express.Router();
 
-// Miksi: kaikki alla olevat reitit vaativat kirjautumisen
+// All routes require authentication
 router.use(verifyJWT);
 
 /**
  * GET /api/user/favorites
- * Palauttaa käyttäjän suosikki-elokuvien id:t listana.
- * HUOM: Vaihda SELECT vastaamaan teidän skeemaa, tämä toimii sekä
- * - yhdellä favorites-taululla (user_id, movie_id)
- * - että listojen kautta (favorite_lists + favorite_list_movies)
+ * Returns user's favorite movie ids as a list.
+ * NOTE: Adjust SELECT to your schema if needed.
  */
 router.get("/favorites", async (req, res) => {
   try {
-    // Yritä listapohjaista skeemaa ensin
+    // Try list-based schema first
     try {
       const { rows } = await pool.query(
         `SELECT flm.movie_id AS id
@@ -30,7 +28,7 @@ router.get("/favorites", async (req, res) => {
       );
       return res.json(rows);
     } catch {
-      // Fallback: yksinkertainen favorites-taulu
+      // Fallback: simple favorites table
       const { rows } = await pool.query(
         `SELECT movie_id AS id
            FROM favorites
@@ -47,13 +45,71 @@ router.get("/favorites", async (req, res) => {
 });
 
 /**
+ * POST /api/user/favorites
+ * Adds a movie to user's favorites (idempotent).
+ * Body: { movieId }
+ */
+router.post("/favorites", async (req, res) => {
+  const movieId = Number(req.body?.movieId);
+  if (!Number.isFinite(movieId)) {
+    return res.status(400).json({ error: "Invalid movie id" });
+  }
+  try {
+    // Prefer list-based schema (if present)
+    try {
+      // Ensure a default favorites list exists for this user
+      const { rows: lists } = await pool.query(
+        `SELECT favorite_list_id
+           FROM favorite_lists
+          WHERE user_id = $1
+          ORDER BY favorite_list_id
+          LIMIT 1`,
+        [req.user.user_id]
+      );
+
+      let listId = lists?.[0]?.favorite_list_id;
+      if (!listId) {
+        const ins = await pool.query(
+          `INSERT INTO favorite_lists (user_id, name)
+           VALUES ($1, $2)
+           RETURNING favorite_list_id`,
+          [req.user.user_id, "Favorites"]
+        );
+        listId = ins.rows[0].favorite_list_id;
+      }
+
+      await pool.query(
+        `INSERT INTO favorite_list_movies (favorite_list_id, movie_id)
+         VALUES ($1, $2)
+         ON CONFLICT DO NOTHING`,
+        [listId, movieId]
+      );
+
+      return res.status(201).json({ ok: true, movieId });
+    } catch {
+      // Fallback: simple favorites table
+      await pool.query(
+        `INSERT INTO favorites (user_id, movie_id)
+         VALUES ($1, $2)
+         ON CONFLICT (user_id, movie_id) DO NOTHING`,
+        [req.user.user_id, movieId]
+      );
+      return res.status(201).json({ ok: true, movieId });
+    }
+  } catch (e) {
+    console.error("POST /api/user/favorites", e);
+    return res.status(500).json({ error: "Failed to add favorite" });
+  }
+});
+
+/**
  * DELETE /api/user/favorites/:movieId
- * Poistaa elokuvan käyttäjän suosikeista (riippumatta listasta).
+ * Removes a movie from user's favorites (list-agnostic).
  */
 router.delete("/favorites/:movieId", async (req, res) => {
   const movieId = String(req.params.movieId);
   try {
-    // Yritä listapohjaista skeemaa
+    // Try list-based schema
     const delList = await pool.query(
       `DELETE FROM favorite_list_movies
         WHERE movie_id = $1
@@ -64,7 +120,7 @@ router.delete("/favorites/:movieId", async (req, res) => {
     );
     if (delList.rowCount > 0) return res.status(204).end();
 
-    // Fallback: yksinkertainen favorites-taulu
+    // Fallback: simple favorites table
     await pool.query(
       `DELETE FROM favorites WHERE user_id = $1 AND movie_id = $2`,
       [req.user.user_id, movieId]
@@ -78,7 +134,6 @@ router.delete("/favorites/:movieId", async (req, res) => {
 
 /**
  * GET /api/user/reviews
- * Palauttaa käyttäjän arvostelut; kentät yhteenmukaiset frontin kanssa.
  */
 router.get("/reviews", async (req, res) => {
   try {
@@ -127,7 +182,7 @@ router.delete("/reviews/:id", async (req, res) => {
 
 /**
  * GET /api/user/history
- * Palauttaa katseluhistorian. Jos taulu puuttuu, palautetaan tyhjä lista.
+ * Returns watch history. If table is missing, returns empty list.
  */
 router.get("/history", async (req, res) => {
   try {
@@ -141,7 +196,7 @@ router.get("/history", async (req, res) => {
     );
     return res.json(rows.map((r) => ({ id: r.id, viewedAt: r.viewed_at })));
   } catch (e) {
-    // Miksi: kehitysympäristössä taulu voi puuttua → älä kaada UI:ta
+    // In dev env the table may not exist — don't crash UI
     if (
       String(e?.message || "").includes("relation") &&
       String(e?.message || "").includes("does not exist")

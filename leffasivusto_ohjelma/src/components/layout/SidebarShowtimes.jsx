@@ -1,175 +1,143 @@
-import { useEffect, useMemo, useState } from "react";
-import { Card, Form, Button, Spinner } from "react-bootstrap";
-import finnkinoApi from "../../services/finnkinoService.js";
-
-function formatTime(iso) {
-  const d = new Date(iso);
-  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-}
-function isoDate(d = new Date()) {
-  const pad = (n) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-}
+// src/components/layout/SidebarShowtimes.jsx
+import React, { useState, useMemo, useEffect } from "react";
+import { Card, Form, ListGroup, Button } from "react-bootstrap";
+import { useTheatres } from "../../hooks/useTheatres";
+import { useSchedule } from "../../hooks/useSchedule";
 
 export default function SidebarShowtimes() {
-  const [cities, setCities] = useState([]);
-  const [theaters, setTheaters] = useState([]);
+  const theatresRaw = useTheatres();
 
-  const [city, setCity] = useState("");        // area id
-  const [theatreId, setTheatreId] = useState("");
-  const [date, setDate] = useState(isoDate());
+  const [selectedCity, setSelectedCity] = useState("");
+  const [selectedArea, setSelectedArea] = useState("");
+  const [selectedDate, setSelectedDate] = useState("");
 
-  const [shows, setShows] = useState([]);
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState("");
+  // Suodatetaan virheelliset alueet pois
+  const theatres = useMemo(() => {
+    return theatresRaw.filter((t) => {
+      const name = t.name.toLowerCase();
+      if (name.includes("valitse")) return false;
+      if (name.includes(",")) return false;
+      return true;
+    });
+  }, [theatresRaw]);
 
-  // Load cities on mount
+  // Oletuksena tämän päivän päivämäärä
   useEffect(() => {
-    let on = true;
-    (async () => {
-      try {
-        const data = await finnkinoApi.getCities();
-        if (!on) return;
-        setCities(data);
-        // Autoselect first non-zero area
-        const first = data.find(a => a.id && a.id !== 0);
-        if (first) setCity(String(first.id));
-      } catch (e) {
-        if (on) setErr(e?.message || "Failed to load cities");
-      }
-    })();
-    return () => { on = false; };
+    const today = new Date();
+    const dd = String(today.getDate()).padStart(2, "0");
+    const mm = String(today.getMonth() + 1).padStart(2, "0");
+    const yyyy = today.getFullYear();
+    setSelectedDate(`${dd}.${mm}.${yyyy}`);
   }, []);
 
-  // Load theaters when city changes
-  useEffect(() => {
-    if (!city) { setTheaters([]); setTheatreId(""); return; }
-    let on = true;
-    (async () => {
-      try {
-        const data = await finnkinoApi.getTheaters(Number(city));
-        if (!on) return;
-        setTheaters(data);
-        setTheatreId(""); // reset theatre on city change
-      } catch (e) {
-        if (on) setErr(e?.message || "Failed to load theaters");
-      }
-    })();
-    return () => { on = false; };
-  }, [city]);
+  const schedule = useSchedule(selectedArea, selectedDate);
 
-  // Load showtimes when filters change
-  useEffect(() => {
-    if (!city && !theatreId) return;
-    let on = true;
-    (async () => {
-      setBusy(true); setErr("");
-      try {
-        const data = await finnkinoApi.getShowtimes({
-          area: Number(city || 0) || undefined,
-          theatreId: theatreId ? Number(theatreId) : undefined,
-          date,
-        });
-        if (on) setShows(data);
-      } catch (e) {
-        if (on) setErr(e?.message || "Failed to load showtimes");
-      } finally {
-        if (on) setBusy(false);
-      }
-    })();
-    return () => { on = false; };
-  }, [city, theatreId, date]);
+  const cities = useMemo(() => {
+    const set = new Set();
+    theatres.forEach((t) => {
+      const city = t.name.split(":")[0].trim();
+      set.add(city);
+    });
+    return Array.from(set);
+  }, [theatres]);
 
-  const list = useMemo(() => {
-    if (!shows.length) return <div className="text-muted">No showtimes.</div>;
-    return (
-      <div className="d-grid gap-2">
-        {shows.map(s => {
-          const href = s.id ? `https://www.finnkino.fi/websales/show/${s.id}/` : (s.eventUrl || "#");
-          return (
-            <div key={s.id} className="pb-2 border-bottom">
-              <div className="fw-semibold">{s.title} — {s.theatre}</div>
-              <div className="text-muted small">
-                {formatTime(s.start)}{s.auditorium ? ` — ${s.auditorium}` : ""}{s.price ? ` — ${s.price}` : ""}
-              </div>
-              <div className="mt-2">
-                <Button size="sm" className="rounded-pill" href={href} target="_blank" rel="noreferrer">
-                  Book
-                </Button>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    );
-  }, [shows]);
+  // Teatterit valitun kaupungin mukaan
+  const theatresForCity = useMemo(() => {
+    if (!selectedCity) return [];
+    return theatres.filter((t) => t.name.startsWith(selectedCity));
+  }, [theatres, selectedCity]);
+
+  // Jos kaupungilla vain yksi teatteri, valitse se automaattisesti
+  useEffect(() => {
+    if (theatresForCity.length === 1) {
+      setSelectedArea(theatresForCity[0].id);
+    } else {
+      setSelectedArea("");
+    }
+  }, [theatresForCity]);
+
+  // Suodata valitun päivämäärän mukaan
+  const filteredSchedule = selectedDate
+    ? schedule.filter((s) => s.date === selectedDate)
+    : schedule;
 
   return (
-    <Card className="shadow-sm">
-      <Card.Body>
-        <Card.Title className="h6">Finnkino Showtimes & Filters</Card.Title>
+    <Card className="mb-3">
+      <Card.Header>Finnkino Showtimes</Card.Header>
+      <Card.Body className="d-grid gap-3">
+        {/* Kaupungin valinta */}
+        <Form.Select
+          value={selectedCity}
+          onChange={(e) => setSelectedCity(e.target.value)}
+        >
+          <option value="">Select city</option>
+          {cities.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </Form.Select>
 
-        <Form.Group className="mb-2">
-          <Form.Label className="small">Select city</Form.Label>
-          <Form.Select value={city} onChange={(e)=>setCity(e.target.value)}>
-            <option value="" disabled>Select city</option>
-            {cities.map(c => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </Form.Select>
-        </Form.Group>
+        {/* Teatterin valinta */}
+        <Form.Select
+          value={selectedArea}
+          onChange={(e) => setSelectedArea(e.target.value)}
+          disabled={!selectedCity}
+        >
+          <option value="">Select theatre</option>
+          {theatresForCity.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.name.split(":").pop().trim()}
+            </option>
+          ))}
+        </Form.Select>
 
-        <Form.Group className="mb-2">
-          <Form.Label className="small">Select theater (optional)</Form.Label>
-          <Form.Select value={theatreId} onChange={(e)=>setTheatreId(e.target.value)} disabled={!theaters.length}>
-            <option value="">All theaters in city</option>
-            {theaters.map(t => (
-              <option key={t.id} value={t.id}>{t.name}</option>
-            ))}
-          </Form.Select>
-        </Form.Group>
+        {/* Päivämäärä */}
+        <Form.Control
+          type="date"
+          value={selectedDate ? selectedDate.split(".").reverse().join("-") : ""}
+          onChange={(e) => {
+            if (!e.target.value) {
+              setSelectedDate("");
+              return;
+            }
+            const [year, month, day] = e.target.value.split("-");
+            setSelectedDate(`${day}.${month}.${year}`);
+          }}
+        />
 
-        <Form.Group className="mb-3">
-          <Form.Label className="small">Date</Form.Label>
-          <Form.Control type="date" value={date} onChange={(e)=>setDate(e.target.value)} />
-        </Form.Group>
-
-        <div className="fw-semibold mb-2">Today’s showtimes</div>
-
-        {busy ? (
-          <div className="py-2">
-            <Spinner animation="border" size="sm" /> <span className="ms-2">Loading…</span>
+        {/* Esitysaikojen listaus */}
+        {selectedArea && (
+          <div>
+            <div className="fw-semibold mb-2">
+              {selectedDate ? `${selectedDate} Showtimes` : "All Showtimes"}
+            </div>
+            {filteredSchedule.length > 0 ? (
+              <ListGroup variant="flush">
+                {filteredSchedule.map((show, idx) => (
+                  <ListGroup.Item
+                    key={idx}
+                    className="small d-flex justify-content-between align-items-center"
+                  >
+                    <div>
+                      <strong>{show.title}</strong>
+                      <br />
+                      {show.theatre} — {show.time}
+                    </div>
+                    <Button size="sm" variant="primary">
+                      Book
+                    </Button>
+                  </ListGroup.Item>
+                ))}
+              </ListGroup>
+            ) : (
+              <p className="text-muted small mb-0">
+                No movies for this selection.
+              </p>
+            )}
           </div>
-        ) : err ? (
-          <div className="text-danger small">{err}</div>
-        ) : (
-          list
         )}
       </Card.Body>
     </Card>
   );
 }
-/* import { Card, Form, ListGroup, Button } from 'react-bootstrap'
-
-// Placeholder – kutsutaan myöhemmin Finnkino-backendiin controllerin kautta
-export default function SidebarShowtimes() {
-  return (
-    <Card className="mb-3">
-      <Card.Header>Finnkino Showtimes & Filters</Card.Header>
-      <Card.Body className="d-grid gap-3">
-        <Form.Select><option>Select city</option></Form.Select>
-        <Form.Select><option>Select theater</option></Form.Select>
-        <Form.Control type="date" />
-        <div>
-          <div className="fw-semibold mb-2">Today’s showtimes</div>
-          <ListGroup variant="flush">
-            <ListGroup.Item className="small">Dune Part Two — Tennispalatsi — 18:30 — €12.50 — <Button size="sm">Book</Button></ListGroup.Item>
-            <ListGroup.Item className="small">Oppenheimer — Kinopalatsi — 20:00 — €14.00 — <Button size="sm">Book</Button></ListGroup.Item>
-            <ListGroup.Item className="small">Barbie — Sello — 19:15 — €11.50 — <Button size="sm">Book</Button></ListGroup.Item>
-          </ListGroup>
-        </div>
-      </Card.Body>
-    </Card>
-  )
-}
- */
