@@ -1,5 +1,8 @@
 /* === MOVIE CARD (only card-specific rules) =============================== */
 
+/* Kortti tarvitsee suhteellisen sijoittelun, jotta heart-btn ankkuroidaan */
+.movie-card { position: relative; }
+
 /* Otsikko: yksi rivi, ellipsis */
 .movie-card .card-title {
   font-weight: 700;
@@ -9,6 +12,25 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* Poster-kuva */
+.card-poster { object-fit: cover; }
+
+/* Floating reactive heart button (bottom-right) */
+.floating-heart-btn {
+  position: absolute;
+  right: .5rem;
+  bottom: .5rem;
+  width: 40px; height: 40px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: none;
+  transition: transform 120ms ease, box-shadow 120ms ease, background-color 120ms ease, opacity 120ms ease;
+  opacity: 0.95;
+}
+.floating-heart-btn:hover { transform: translateY(-1px) scale(1.05); }
+.floating-heart-btn:active { transform: scale(0.98); }
+.floating-heart-btn.is-active { color: var(--bs-danger); }
+.floating-heart-btn .heart-icon { display: block; }
 
 /* Overview – perusmuoto (kortti kiinni) */
 .movie-card .card-text {
@@ -70,7 +92,7 @@
   margin-top: 0;
 }
 
-/* Kun kortti on "auki", varaa tilaa enintään ~15 riville. 
+/* Kun kortti on "auki", varaa tilaa enintään ~15 riville.
    line-height: 1.3rem → 15 * 1.3rem = 19.5rem → lisätään hieman väljyyttä */
 .movie-card.is-revealed .overview-wrap {
   max-height: 20.5rem;   /* ≈ 15 rows */
@@ -81,7 +103,7 @@
 .movie-card .overview-content {
   font-size: .85rem;
   line-height: 1.3rem;
-  color: var(--fg);
+  color: var(--fg, inherit);
   opacity: 0;
   transform: translateY(-4px);
   transition: opacity 300ms ease, transform 300ms ease;
@@ -100,8 +122,4 @@
   transform: translateY(0);
 }
 
-/* Pienemmillä ruuduilla vähemmän riviä/tilaa, ettei kortit kasva liikaa */
-@media (max-width: 768px) {
-  .movie-card.is-revealed .overview-wrap { max-height: 12rem; } /* ~9 riviä */
-  .movie-card .overview-content { -webkit-line-clamp: 9; }
-}
+/* Pienemmillä ruuduilla vähemmän riviä/tilaa, ettei kortit kasva liikaa*
