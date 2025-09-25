@@ -5,6 +5,11 @@ import NotFound from "../pages/NotFound.jsx";
 import Profile from "../pages/Profile.jsx";
 import RequireAuth from "./RequireAuth.jsx";
 
+import CreateGroup from "../pages/Groups/CreateGroup.jsx";
+import GroupList from "../pages/Groups/GroupList.jsx";
+import GroupDetail from "../pages/Groups/GroupDetail.jsx";
+
+
 export default function AppRoutes() {
   return (
     <Routes>
@@ -17,6 +22,31 @@ export default function AppRoutes() {
         element={
           <RequireAuth>
             <Profile />
+          </RequireAuth>
+        }
+      />
+
+      <Route
+        path="/groups"
+        element={
+          <RequireAuth>
+            <GroupList />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/groups/create"
+        element={
+          <RequireAuth>
+            <CreateGroup />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/groups/:id"
+        element={
+          <RequireAuth>
+            <GroupDetail />
           </RequireAuth>
         }
       />
