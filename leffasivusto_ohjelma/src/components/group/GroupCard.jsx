@@ -9,10 +9,10 @@ export default function GroupCard({ group }) {
   };
 
   return (
-    <Card>
+    <Card className="h-100 shadow-sm">
       <Card.Body>
-        <Card.Title>{group.group_name}</Card.Title>
-        <Card.Subtitle className="mb-2 text-muted">
+        <Card.Title className="mb-1">{group.group_name}</Card.Title>
+        <Card.Subtitle className="mb-3 text-muted">
           Owner ID: {group.owner_id}
         </Card.Subtitle>
         <Button variant="outline-primary" onClick={handleClick}>

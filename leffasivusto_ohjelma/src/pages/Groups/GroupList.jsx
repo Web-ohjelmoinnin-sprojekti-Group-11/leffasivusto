@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { Button, Row, Col, Spinner, Alert } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "../../services/api";
+import { getToken } from "../../services/token";
 import GroupCard from "../../components/group/GroupCard.jsx";
 
 export default function GroupList() {
@@ -10,16 +11,14 @@ export default function GroupList() {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
-  const token = localStorage.getItem("token");
-
   useEffect(() => {
     fetchGroups();
   }, []);
 
   const fetchGroups = async () => {
     try {
-      const res = await axios.get("http://localhost:3001/api/groups", {
-        headers: { Authorization: `Bearer ${token}` },
+      const res = await api.get("/groups", {
+        headers: { Authorization: `Bearer ${getToken()}` },
       });
       setGroups(res.data.groups || []);
     } catch (err) {

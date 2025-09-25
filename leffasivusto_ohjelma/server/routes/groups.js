@@ -1,33 +1,46 @@
+// server/routes/groups.js
 import express from "express";
 import pool from "../db.js";
 import { verifyJWT } from "../middleware/auth.js";
 
 const router = express.Router();
 
-/* Luo uusi ryhmä */
+/* Luo uusi ryhmä (transaktiona) */
 router.post("/", verifyJWT, async (req, res) => {
-  const { group_name } = req.body;
-  const ownerId = req.user.user_id;
+  const rawName = req.body?.group_name ?? "";
+  const groupName = String(rawName).trim();
+  const ownerId = req.user?.user_id;
 
+  if (!ownerId) return res.status(401).json({ error: "Unauthorized" });
+  if (!groupName) return res.status(400).json({ error: "Group name is required" });
+
+  const client = await pool.connect();
   try {
-    const { rows } = await pool.query(
+    await client.query("BEGIN");
+
+    const { rows } = await client.query(
       `INSERT INTO groups (owner_id, group_name)
        VALUES ($1, $2)
        RETURNING group_id, owner_id, group_name, created_at`,
-      [ownerId, group_name]
+      [ownerId, groupName]
     );
+    const group = rows[0];
 
-    // lisää owner myös jäseneksi
-    await pool.query(
+    // HUOM: kannan CHECK sallii vain ('member','admin') → käytetään 'admin'
+    await client.query(
       `INSERT INTO group_members (user_id, group_id, role)
-       VALUES ($1, $2, 'owner')`,
-      [ownerId, rows[0].group_id]
+       VALUES ($1, $2, 'admin')`,
+      [ownerId, group.group_id]
     );
 
-    res.status(201).json({ group: rows[0] });
+    await client.query("COMMIT");
+    return res.status(201).json({ group });
   } catch (err) {
+    await client.query("ROLLBACK");
     console.error("Group create error:", err);
-    res.status(500).json({ error: "Ryhmän luonti epäonnistui" });
+    return res.status(500).json({ error: "Ryhmän luonti epäonnistui" });
+  } finally {
+    client.release();
   }
 });
 
@@ -46,7 +59,7 @@ router.get("/", async (_req, res) => {
   }
 });
 
-/* Näytä yksittäinen ryhmä (jäsenille) */
+/* Näytä yksittäinen ryhmä (vain jäsenille) */
 router.get("/:id", verifyJWT, async (req, res) => {
   const groupId = req.params.id;
   const userId = req.user.user_id;
@@ -73,7 +86,7 @@ router.get("/:id", verifyJWT, async (req, res) => {
   }
 });
 
-/* Poista ryhmä  */
+/* Poista ryhmä (vain omistaja) */
 router.delete("/:id", verifyJWT, async (req, res) => {
   const groupId = req.params.id;
   const userId = req.user.user_id;
