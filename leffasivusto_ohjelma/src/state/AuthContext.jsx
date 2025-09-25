@@ -10,13 +10,12 @@ export function AuthProvider({ children }) {
   const [authOpen, setAuthOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(null); // <-- lisätty
+  const [success, setSuccess] = useState(null);
 
-  // AINA sivun latauksessa: yritä uusia access-token.
+  // Käynnistyksessä: yritä uusia token & hae käyttäjä
   useEffect(() => {
     let cancelled = false;
-
-    const bootstrap = async () => {
+    (async () => {
       try {
         const refreshed = await authController.refresh?.();
         if (refreshed?.accessToken) setToken(refreshed.accessToken);
@@ -30,15 +29,12 @@ export function AuthProvider({ children }) {
         clearToken();
         if (!cancelled) setUser(null);
       }
-    };
-
-    bootstrap();
+    })();
     return () => { cancelled = true; };
   }, []);
 
   const normalizeError = (e) => {
-    const msg = e?.response?.data?.error || e.message || '';
-    // Mäpätään tutut backend-viestit englanniksi
+    const msg = e?.response?.data?.error || e?.response?.data?.message || e?.message || '';
     if (/sähköposti.*käytössä/i.test(msg)) return 'Email is already in use.';
     if (/virheellinen.*sähköposti|salasana/i.test(msg)) return 'Invalid email or password.';
     if (/invalid refresh/i.test(msg)) return 'Session expired. Please sign in again.';
@@ -50,12 +46,13 @@ export function AuthProvider({ children }) {
     try {
       const { accessToken, user } = await authController.login(email, password);
       if (!accessToken) throw new Error('Token missing from server response');
+      setToken(accessToken);                 // <-- TÄRKEÄ
       setUser(user || null);
-      setAuthOpen(false); // onnistunut login: sulje modal
+      setAuthOpen(false);                    // sulje modal vasta onnistumisessa
       return { ok: true };
     } catch (e) {
       setError(normalizeError(e) || 'Invalid email or password.');
-      return { ok: false, error: e };
+      return { ok: false };
     } finally {
       setLoading(false);
     }
@@ -66,13 +63,14 @@ export function AuthProvider({ children }) {
     try {
       const { accessToken, user } = await authController.register(email, password);
       if (!accessToken) throw new Error('Token missing from server response');
+      setToken(accessToken);                 // <-- myös täällä
       setUser(user || null);
-      setSuccess('Registration successful.'); // <-- ilmoitus
-      // HUOM: modalin sulkeminen hoidetaan AuthModalissa pienen viiveen jälkeen
+      setSuccess('Registration successful.');
+      // Modalin sulkeminen päätetään AuthModalissa
       return { ok: true };
     } catch (e) {
       setError(normalizeError(e));
-      return { ok: false, error: e };
+      return { ok: false };
     } finally {
       setLoading(false);
     }

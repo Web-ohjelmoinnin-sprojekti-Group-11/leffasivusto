@@ -7,6 +7,8 @@ import authRoutes from "./routes/auth.js";
 import tmdbRoutes from "./routes/tmdb.js";
 import authExtraRoutes from "./routes/authExtra.js";
 import userRoutes from "./routes/user.js";
+import reviewsRouter from './routes/reviews.js';
+
 
 import pool from "./db.js";
 
@@ -26,6 +28,7 @@ app.use(cookieParser());
 // Existing
 app.use("/api/auth", authRoutes);
 app.use("/api/tmdb", tmdbRoutes);
+app.use('/api/reviews', reviewsRouter);
 // New
 app.use("/api/auth", authExtraRoutes);
 app.use("/api/user", userRoutes);

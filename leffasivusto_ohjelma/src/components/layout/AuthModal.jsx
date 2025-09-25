@@ -1,92 +1,24 @@
-import { useEffect, useState } from 'react';
-import { Modal, Button, Form, Alert, Spinner } from 'react-bootstrap';
-import { useAuth } from '../../state/AuthContext.jsx';
-import { useNavigate } from 'react-router-dom';
-
-export default function AuthModal({ show, onHide }) {
-  const [mode, setMode] = useState('login');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const { login, register, loading, error, success, setSuccess, setError } = useAuth();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (show) { setSuccess?.(null); setError?.(null); }
-  }, [show, mode, setSuccess, setError]);
-
-  const submit = async (e) => {
-    e.preventDefault();
-    try {
-      if (mode === 'login') {
-        await login(email, password);
-        onHide?.();
-        navigate('/profile', { replace: true }); // WHY: siirry profiiliin heti
-      } else {
-        await register(email, password);
-      }
-    } catch (_) { /* virheet näytetään contextin kautta */ }
-  };
-
-  return (
-    <Modal show={show} onHide={onHide} centered>
-      <Modal.Header closeButton>
-        <Modal.Title>{mode==='login' ? 'Sign in' : 'Sign up'}</Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
-        {error && <Alert variant="danger" className="mb-3">Invalid email or password.</Alert>}
-        {success && mode === 'signup' && <Alert variant="success" className="mb-3">Registration successful.</Alert>}
-        <Form onSubmit={submit}>
-          <Form.Group className="mb-3">
-            <Form.Label>Email</Form.Label>
-            <Form.Control type="email" value={email} onChange={(e)=>setEmail(e.target.value)} required autoFocus disabled={loading}/>
-          </Form.Group>
-          <Form.Group className="mb-3">
-            <Form.Label>Password</Form.Label>
-            <Form.Control type="password" value={password} onChange={(e)=>setPassword(e.target.value)} required minLength={6} disabled={loading}/>
-          </Form.Group>
-          <div className="d-flex gap-2">
-            <Button type="submit" disabled={loading}>
-              {loading ? (<><Spinner animation="border" size="sm" /> <span className="ms-2">Please wait…</span></>) : (mode==='login' ? 'Sign in' : 'Create account')}
-            </Button>
-            <Button variant="outline-secondary" className="flex-grow-1" onClick={()=>setMode(m=>m==='login'?'signup':'login')} disabled={loading}>
-              Switch to {mode==='login' ? 'Sign up' : 'Sign in'}
-            </Button>
-          </div>
-        </Form>
-      </Modal.Body>
-    </Modal>
-  );
-}/* // src/components/auth/AuthModal.jsx
-import { useEffect, useState } from 'react';
-import { Modal, Button, Form, Alert, Spinner } from 'react-bootstrap';
+// src/components/layout/AuthModal.jsx
+import { Modal, Form, Button, Alert, Spinner } from 'react-bootstrap';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../state/AuthContext.jsx';
 
 export default function AuthModal({ show, onHide }) {
+  const { login, register, loading, error, success, setError, setSuccess } = useAuth();
   const [mode, setMode] = useState('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { login, register, loading, error, success, setSuccess, setError } = useAuth();
 
+  // Kun modal avataan tai moodi vaihtuu → nollaa viestit
   useEffect(() => {
-    // Tyhjennä ilmoitukset, kun modal avataan tai moodi vaihtuu
-    if (show) { setSuccess?.(null); setError?.(null); }
-  }, [show, mode, setSuccess, setError]);
+    if (show) { setError(null); setSuccess(null); }
+  }, [show, mode, setError, setSuccess]);
 
-  useEffect(() => {
-    // Sign up onnistui → näytä viesti → sulje hetken kuluttua
-    if (success && mode === 'signup') {
-      const t = setTimeout(() => { onHide?.(); }, 1200);
-      return () => clearTimeout(t);
-    }
-  }, [success, mode, onHide]);
-
-  const submit = async (e) => {
+  const onSubmit = async (e) => {
     e.preventDefault();
-    if (mode === 'login') {
-      await login(email, password); // epäonnistuessa error näkyy, modal ei sulkeudu
-    } else {
-      await register(email, password); // onnistumisessa success näkyy ja suljetaan viiveellä
-    }
+    const action = mode === 'login' ? login : register;
+    const { ok } = await action(email, password);
+    if (ok) onHide?.();              // sulje vain onnistumisessa
   };
 
   return (
@@ -95,10 +27,10 @@ export default function AuthModal({ show, onHide }) {
         <Modal.Title>{mode === 'login' ? 'Sign in' : 'Sign up'}</Modal.Title>
       </Modal.Header>
       <Modal.Body>
-        {error && <Alert variant="danger" className="mb-3">Invalid email or password.</Alert>}
-        {success && mode === 'signup' && <Alert variant="success" className="mb-3">Registration successful.</Alert>}
+        {error && <Alert variant="danger" className="mb-3">{error}</Alert>}
+        {success && mode === 'signup' && <Alert variant="success" className="mb-3">{success}</Alert>}
 
-        <Form onSubmit={submit}>
+        <Form onSubmit={onSubmit}>
           <Form.Group className="mb-3">
             <Form.Label>Email</Form.Label>
             <Form.Control
@@ -126,12 +58,12 @@ export default function AuthModal({ show, onHide }) {
 
           <div className="d-flex gap-2">
             <Button type="submit" className="flex-grow-1" disabled={loading}>
-              {loading ? (<><Spinner size="sm" className="me-2" />Please wait…</>) : 'Submit'}
+              {loading ? (<><Spinner animation="border" size="sm" className="me-2" />Please wait…</>) : (mode==='login' ? 'Sign in' : 'Create account')}
             </Button>
             <Button
               variant="outline-secondary"
               className="flex-grow-1"
-              onClick={()=>setMode(m=>m==='login'?'signup':'login')}
+              onClick={()=>setMode(m => m === 'login' ? 'signup' : 'login')}
               disabled={loading}
             >
               Switch to {mode==='login' ? 'Sign up' : 'Sign in'}
@@ -142,4 +74,3 @@ export default function AuthModal({ show, onHide }) {
     </Modal>
   );
 }
- */

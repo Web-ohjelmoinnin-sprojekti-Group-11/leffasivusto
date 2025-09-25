@@ -104,6 +104,40 @@ router.get("/discover", async (req, res) => {
   }
 });
 
+// GET /api/tmdb/title/:id  (alias: automaattinen movie -> tv fallback)
+router.get("/title/:id", async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isFinite(id)) return res.status(400).json({ error: "Bad id" });
+
+  // Apufunktio
+  const fetchPack = (type) =>
+    Promise.all([
+      tmdb.get(`/${type}/${id}`),
+      tmdb.get(`/${type}/${id}/credits`),
+    ]);
+
+  try {
+    // 1) yritä movie
+    const [detail, credits] = await fetchPack("movie");
+    return res.json({ detail: detail.data, credits: credits.data });
+  } catch (errMovie) {
+    const status = errMovie?.response?.status;
+    if (status && status !== 404) {
+      console.error("TMDB movie error:", errMovie?.response?.data || errMovie.message);
+      return res.status(502).json({ error: "Failed to fetch TMDB" });
+    }
+    // 2) fallback tv
+    try {
+      const [detail, credits] = await fetchPack("tv");
+      return res.json({ detail: detail.data, credits: credits.data });
+    } catch (errTv) {
+      console.error("TMDB tv error:", errTv?.response?.data || errTv.message);
+      return res.status(404).json({ error: "Not found" });
+    }
+  }
+});
+
+
 
 
 
