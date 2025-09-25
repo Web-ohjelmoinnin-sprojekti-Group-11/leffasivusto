@@ -31,7 +31,7 @@ router.post("/", verifyJWT, async (req, res) => {
   }
 });
 
-/* Listaa ryhmät */
+/* Listaa kaikki ryhmät */
 router.get("/", async (_req, res) => {
   try {
     const { rows } = await pool.query(
@@ -66,7 +66,7 @@ router.get("/:id", verifyJWT, async (req, res) => {
       return res.status(403).json({ error: "Et ole tämän ryhmän jäsen" });
     }
 
-    res.json({ group: g[0] });
+    res.json({ group: g[0], membership: membership[0] });
   } catch (err) {
     console.error("Group fetch error:", err);
     res.status(500).json({ error: "Ryhmän haku epäonnistui" });

@@ -1,6 +1,9 @@
-// server/utils/tmdb.js
 import axios from "axios";
+import dotenv from "dotenv";
+import path from "path";
 
+// Lataa .env projektin juuresta
+dotenv.config({ path: path.resolve("../.env") });
 const tmdb = axios.create({
   baseURL: "https://api.themoviedb.org/3",
   timeout: 15000,
