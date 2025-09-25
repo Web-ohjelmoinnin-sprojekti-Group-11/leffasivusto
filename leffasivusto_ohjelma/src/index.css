@@ -1,3 +1,5 @@
+/* === GLOBAL UI (no theme duplicates, no card-specific CSS) =============== */
+
 /* 1) Fontti */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
 
@@ -12,7 +14,7 @@ body {
 img { max-width: 100%; display: block; }
 .ratio.ratio-2x3 { --bs-aspect-ratio: calc(100% * 3 / 2); }
 
-/* 3) Pinnat */
+/* 3) Pinnat (varit tulevat theme.css:stä) */
 .card, .offcanvas {
   background: var(--card);
   border-color: var(--border);
@@ -39,7 +41,7 @@ img { max-width: 100%; display: block; }
   margin-right: calc(50% - 50vw);
   position: relative;
   overflow: hidden;
-  isolation: isolate; /* pseudo-elementtien sekoitukset siisteiksi */
+  isolation: isolate;
 }
 .hero-img{
   width: 100%;
@@ -68,9 +70,9 @@ img { max-width: 100%; display: block; }
   }
 }
 
-/* 4b) PEHMEÄ sweep myös normaalissa näkymässä
-   - aktivoi lisäämällä .glow-sweep heron wrapperiin (HeroSection)
-   - intro.css ylikirjoittaa tämän vahvemmalla versiolla intro-tilassa */
+/* 4b) Pehmeä sweep myös normaalissa näkymässä
+   - aktivoi lisäämällä .glow-sweep hero-wrappiin
+   - intro.css ylikirjoittaa vahvemmalla versiolla intro-tilassa */
 .hero-bleed.glow-sweep::after{
   content: ""; position: absolute; inset: -8% -25%; z-index: 1; pointer-events: none;
   mix-blend-mode: screen;
@@ -87,43 +89,16 @@ img { max-width: 100%; display: block; }
   60%,100% { transform: translateX(120%) skewX(-12deg); }
 }
 
-/* 5) Napit teemavärissä (hover/active pink/blue) */
-.btn-primary{
-  --bs-btn-color:#fff;
-  --bs-btn-bg:var(--primary);
-  --bs-btn-border-color:var(--primary);
-  --bs-btn-hover-color:#fff;
-  --bs-btn-hover-bg:var(--primary-600);
-  --bs-btn-hover-border-color:var(--primary-600);
-  --bs-btn-active-color:#fff;
-  --bs-btn-active-bg:var(--primary-600);
-  --bs-btn-active-border-color:var(--primary-600);
-  --bs-btn-focus-shadow-rgb:var(--bs-primary-rgb);
-}
-.btn-outline-primary{
-  --bs-btn-color:var(--primary);
-  --bs-btn-border-color:var(--primary);
-  --bs-btn-hover-color:var(--primary-600);
-  --bs-btn-hover-bg:rgba(var(--bs-primary-rgb), .12);
-  --bs-btn-hover-border-color:var(--primary);
-  --bs-btn-active-bg:rgba(var(--bs-primary-rgb), .16);
-  --bs-btn-active-border-color:var(--primary-600);
-  --bs-btn-focus-shadow-rgb:var(--bs-primary-rgb);
-}
-:root[data-theme="dark"] .btn-outline-secondary{
-  --bs-btn-color:var(--fg);
-  --bs-btn-border-color:rgba(255,255,255,.35);
-  --bs-btn-hover-bg:rgba(255,255,255,.08);
-  --bs-btn-hover-border-color:rgba(255,255,255,.6);
-}
+/* 5) (NAPIT POISTETTU TÄÄLTÄ – ovat theme.css:ssä) */
 
-/* 6) Form controlit */
+/* 6) Form controlit (visuaaliset – värit theme.css:ssä) */
 .form-control{
   background-color: var(--bg);
   color: var(--fg);
   border-color: var(--border);
 }
 .form-control::placeholder{ color: #9ea3af; }
+/* tumma hero-input kun theme != pink */
 :root:not([data-theme="pink"]) .hero-search .form-control{
   background-color: rgba(0,0,0,.35);
   border-color: rgba(255,255,255,.08);
@@ -155,4 +130,3 @@ img { max-width: 100%; display: block; }
 @media (prefers-reduced-motion: reduce){
   *{ transition:none !important; animation:none !important; }
 }
-

@@ -23,13 +23,14 @@ CREATE TABLE group_members (
 );
 
 -- arvostelut
-CREATE TABLE reviews (
-    review_id SERIAL PRIMARY KEY,
-    user_id INT REFERENCES users(user_id) ON DELETE CASCADE,
-    movie_id TEXT NOT NULL,  -- ulkoinen sivu
-    rating INT CHECK (rating BETWEEN 1 AND 5),
-    text TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE IF NOT EXISTS reviews (
+  review_id   SERIAL PRIMARY KEY,
+  user_id     INTEGER NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+  movie_id    INTEGER NOT NULL,              -- TMDB-ID
+  rating      SMALLINT NOT NULL CHECK (rating BETWEEN 1 AND 5),
+  text        TEXT NOT NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT reviews_user_movie_uniq UNIQUE (user_id, movie_id)
 );
 
 -- näytösajat
@@ -69,3 +70,129 @@ CREATE TABLE group_content (
     role TEXT
 );
 
+
+
+-- review taulun konffi, aja kokonaisuudessaan.
+/*
+BEGIN;
+
+-- 0) Luo taulu jos puuttuu (minimirakenne, täydennetään alla)
+CREATE TABLE IF NOT EXISTS reviews (
+  review_id  SERIAL PRIMARY KEY,
+  user_id    INTEGER,
+  movie_id   INTEGER,
+  rating     SMALLINT,
+  text       TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 1) Korjaa TYYPIT vain jos poikkeavat
+DO $$
+BEGIN
+  -- user_id -> int4
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name='reviews' AND column_name='user_id' AND udt_name <> 'int4'
+  ) THEN
+    ALTER TABLE reviews ALTER COLUMN user_id TYPE int4 USING user_id::int4;
+  END IF;
+
+  -- movie_id -> int4
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name='reviews' AND column_name='movie_id' AND udt_name <> 'int4'
+  ) THEN
+    ALTER TABLE reviews ALTER COLUMN movie_id TYPE int4 USING movie_id::int4;
+  END IF;
+
+  -- rating -> int2 (smallint)
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name='reviews' AND column_name='rating' AND udt_name <> 'int2'
+  ) THEN
+    ALTER TABLE reviews ALTER COLUMN rating TYPE int2 USING rating::int2;
+  END IF;
+
+  -- created_at -> timestamptz
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name='reviews' AND column_name='created_at' AND udt_name <> 'timestamptz'
+  ) THEN
+    ALTER TABLE reviews ALTER COLUMN created_at TYPE timestamptz USING created_at::timestamptz;
+  END IF;
+END$$;
+
+-- 2) Siivoa data (NULLit ja arvioiden rajaus)
+UPDATE reviews SET created_at = NOW() WHERE created_at IS NULL;
+UPDATE reviews SET text       = ''   WHERE text IS NULL;
+UPDATE reviews SET rating     = 1    WHERE rating IS NULL;
+UPDATE reviews SET rating     = GREATEST(1, LEAST(rating, 5));
+
+-- 2b) Poista duplikaatit (sama user_id+movie_id), säilytä uusin rivi
+WITH ranked AS (
+  SELECT review_id,
+         ROW_NUMBER() OVER (
+           PARTITION BY user_id, movie_id
+           ORDER BY created_at DESC NULLS LAST, review_id DESC
+         ) AS rn
+  FROM reviews
+)
+DELETE FROM reviews r
+USING ranked d
+WHERE r.review_id = d.review_id AND d.rn > 1;
+
+-- 3) NOT NULL + DEFAULT NOW()
+ALTER TABLE reviews
+  ALTER COLUMN user_id    SET NOT NULL,
+  ALTER COLUMN movie_id   SET NOT NULL,
+  ALTER COLUMN rating     SET NOT NULL,
+  ALTER COLUMN text       SET NOT NULL,
+  ALTER COLUMN created_at SET DEFAULT NOW();
+
+-- 4) CHECK (rating 1..5) – lisää vain jos puuttuu
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid = 'reviews'::regclass
+      AND conname  IN ('reviews_rating_check','reviews_rating_chk')
+  ) THEN
+    ALTER TABLE reviews
+      ADD CONSTRAINT reviews_rating_check CHECK (rating BETWEEN 1 AND 5);
+  END IF;
+END$$;
+
+-- 5) FOREIGN KEY usersiin (ON DELETE CASCADE) – lisää vain jos puuttuu
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid='reviews'::regclass
+      AND conname='reviews_user_id_fkey'
+  ) THEN
+    ALTER TABLE reviews
+      ADD CONSTRAINT reviews_user_id_fkey
+      FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE;
+  END IF;
+END$$;
+
+-- 6) UNIQUE (user_id, movie_id) – vaaditaan ON CONFLICT -upsertille
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid='reviews'::regclass
+      AND conname='reviews_user_movie_uniq'
+  ) THEN
+    ALTER TABLE reviews
+      ADD CONSTRAINT reviews_user_movie_uniq UNIQUE (user_id, movie_id);
+  END IF;
+END$$;
+
+-- 7) Indeksit hakuihin
+CREATE INDEX IF NOT EXISTS idx_reviews_movie_id   ON reviews(movie_id);
+CREATE INDEX IF NOT EXISTS idx_reviews_created_at ON reviews(created_at DESC);
+
+COMMIT;
+
+*/
