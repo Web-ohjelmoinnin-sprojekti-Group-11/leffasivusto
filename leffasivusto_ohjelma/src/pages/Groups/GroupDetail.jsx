@@ -9,44 +9,50 @@ export default function GroupDetail() {
   const navigate = useNavigate();
 
   const [group, setGroup] = useState(null);
-  const [members, setMembers] = useState([]);
-  const [membership, setMembership] = useState(null); // { role: 'admin' | 'member' | ... }
+  const [members, setMembers] = useState([]);      // sisältää myös role='pending'
+  const [membership, setMembership] = useState(null); // { role: 'admin'|'member' }
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const authHeader = { headers: { Authorization: `Bearer ${getToken()}` } };
+  const auth = { headers: { Authorization: `Bearer ${getToken()}` } };
 
   useEffect(() => {
-    const fetchAll = async () => {
-      setError(null);
-      setLoading(true);
+    (async () => {
       try {
-        // 1) Ryhmä + oma rooli
-        const g = await api.get(`/groups/${id}`, authHeader);
+        setLoading(true);
+        setError(null);
+
+        // 1) Ryhmä + oma rooli (403 jos ei jäsen → pois)
+        const g = await api.get(`/groups/${id}`, auth);
         setGroup(g.data.group);
         setMembership(g.data.membership || null);
 
-        // 2) Jäsenet (jos endpoint käytössä)
+        // 2) Jäsenet (NYT /api/group_members/:id)
         try {
-          const m = await api.get(`/groups/members/${id}`, authHeader);
+          const m = await api.get(`/group_members/${id}`, auth);
           setMembers(m.data.members || []);
         } catch {
           setMembers([]);
         }
       } catch (err) {
-        console.error("Group fetch error:", err);
+        if (err?.response?.status === 403) {
+          navigate("/groups");
+          return;
+        }
+        console.error(err);
         setError("Failed to load group");
       } finally {
         setLoading(false);
       }
-    };
-    fetchAll();
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
+  const isOwner = membership?.role === "admin";
+
   const removeMember = async (userId) => {
     try {
-      await api.delete(`/groups/members/remove/${id}/${userId}`, authHeader);
+      await api.delete(`/group_members/${id}/members/${userId}`, auth);
       setMembers((prev) => prev.filter((m) => m.user_id !== userId));
     } catch (err) {
       console.error("Failed to remove member:", err);
@@ -54,15 +60,33 @@ export default function GroupDetail() {
     }
   };
 
+  const accept = async (userId) => {
+    try {
+      await api.post(`/group_members/${id}/requests/${userId}`, { action: "accept" }, auth);
+      setMembers((prev) =>
+        prev.map((m) => (m.user_id === userId ? { ...m, role: "member" } : m))
+      );
+    } catch (err) {
+      console.error("Accept failed:", err);
+      setError("Failed to accept request");
+    }
+  };
+
+  const reject = async (userId) => {
+    try {
+      await api.post(`/group_members/${id}/requests/${userId}`, { action: "reject" }, auth);
+    setMembers((prev) => prev.filter((m) => !(m.user_id === userId && m.role === "pending")));
+    } catch (err) {
+      console.error("Reject failed:", err);
+      setError("Failed to reject request");
+    }
+  };
+
   const deleteGroup = async () => {
     if (!group) return;
-    const ok = window.confirm(
-      `Delete group "${group.group_name}"? This cannot be undone.`
-    );
-    if (!ok) return;
-
+    if (!window.confirm(`Delete group "${group.group_name}"? This cannot be undone.`)) return;
     try {
-      await api.delete(`/groups/${id}`, authHeader);
+      await api.delete(`/groups/${id}`, auth);
       navigate("/groups");
     } catch (err) {
       console.error("Group delete error:", err);
@@ -74,7 +98,8 @@ export default function GroupDetail() {
   if (loading) return <div className="my-4"><Spinner animation="border" /></div>;
   if (!group) return <p>Not found.</p>;
 
-  const isOwner = membership?.role === "admin"; // teidän skeema: owner -> admin
+  const pending = members.filter((m) => m.role === "pending");
+  const normalMembers = members.filter((m) => m.role !== "pending");
 
   return (
     <div>
@@ -87,21 +112,41 @@ export default function GroupDetail() {
         )}
       </div>
 
+      {isOwner && (
+        <>
+          <h4 className="mt-3">Join requests</h4>
+          {pending.length === 0 ? (
+            <p className="text-muted">No pending requests.</p>
+          ) : (
+            <ListGroup className="mb-4">
+              {pending.map((r) => (
+                <ListGroup.Item key={r.user_id} className="d-flex justify-content-between align-items-center">
+                  <span>{r.username || r.email || r.user_id}</span>
+                  <div>
+                    <Button size="sm" variant="success" className="me-2" onClick={() => accept(r.user_id)}>
+                      Accept
+                    </Button>
+                    <Button size="sm" variant="outline-danger" onClick={() => reject(r.user_id)}>
+                      Reject
+                    </Button>
+                  </div>
+                </ListGroup.Item>
+              ))}
+            </ListGroup>
+          )}
+        </>
+      )}
+
       <h4 className="mt-2">Members</h4>
-      {members.length === 0 ? (
+      {normalMembers.length === 0 ? (
         <p className="text-muted">No members.</p>
       ) : (
         <ListGroup>
-          {members.map((m) => (
-            <ListGroup.Item key={m.user_id}>
-              {m.username} ({m.role})
+          {normalMembers.map((m) => (
+            <ListGroup.Item key={m.user_id} className="d-flex justify-content-between align-items-center">
+              <span>{m.username || m.email || m.user_id} ({m.role})</span>
               {isOwner && m.role !== "admin" && (
-                <Button
-                  variant="danger"
-                  size="sm"
-                  className="ms-2"
-                  onClick={() => removeMember(m.user_id)}
-                >
+                <Button variant="danger" size="sm" onClick={() => removeMember(m.user_id)}>
                   Remove
                 </Button>
               )}

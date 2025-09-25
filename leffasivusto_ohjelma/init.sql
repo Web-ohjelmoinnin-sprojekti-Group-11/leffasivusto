@@ -196,3 +196,69 @@ CREATE INDEX IF NOT EXISTS idx_reviews_created_at ON reviews(created_at DESC);
 COMMIT;
 
 */
+
+
+-- Group scriptejä:
+-- Tämän jälkeen saa lähetettyä join-kutsun (pending-tila)
+
+/*
+-- 2025-09-25: group_members.role -> allow 'pending' + backfill owner as 'admin'
+-- Tämä skripti on idempotentti: sen voi ajaa useamman kerran turvallisesti.
+
+BEGIN;
+
+-- 1) Varmistetaan, että rooli-sarake on olemassa (turvatarkistus – ei muuta tyyppiä)
+-- (Ohitetaan jos sarake puuttuu -> virhe, koska app odottaa sitä.)
+-- SELECT 1 FROM information_schema.columns
+-- WHERE table_schema='public' AND table_name='group_members' AND column_name='role';
+
+-- 2) Pudota mahdollinen vanha CHECK ja luo uusi joka sallii myös 'pending'
+DO $$
+BEGIN
+  -- Jos constraint löytyy, pudota se
+  IF EXISTS (
+    SELECT 1
+    FROM   pg_constraint c
+    JOIN   pg_class t ON t.oid = c.conrelid
+    JOIN   pg_namespace n ON n.oid = t.relnamespace
+    WHERE  n.nspname = 'public'
+      AND  t.relname = 'group_members'
+      AND  c.conname = 'group_members_role_check'
+  ) THEN
+    ALTER TABLE public.group_members
+      DROP CONSTRAINT group_members_role_check;
+  END IF;
+
+  -- Luo uusi hyväksymään admin, member, pending
+  ALTER TABLE public.group_members
+    ADD CONSTRAINT group_members_role_check
+    CHECK (role IN ('admin','member','pending'));
+END
+$$;
+
+-- 3) Tiukennetaan sarakkeen säännöt (valinnaista mutta suositeltavaa)
+ALTER TABLE public.group_members
+  ALTER COLUMN role SET NOT NULL,
+  ALTER COLUMN role SET DEFAULT 'member';
+
+-- 4) Backfill: lisää omistaja ryhmän jäseneksi admin-roolilla, jos puuttuu
+INSERT INTO public.group_members (user_id, group_id, role)
+SELECT g.owner_id, g.group_id, 'admin'
+FROM   public.groups g
+LEFT   JOIN public.group_members gm
+       ON gm.group_id = g.group_id
+      AND gm.user_id  = g.owner_id
+WHERE  gm.user_id IS NULL;
+
+COMMIT;
+
+-- --- VAPAAEHTOINEN TARKISTUS (voit ajaa erikseen) -------------------------
+-- SELECT conname, pg_get_constraintdef(c.oid)
+-- FROM pg_constraint c
+-- JOIN pg_class t ON t.oid = c.conrelid
+-- JOIN pg_namespace n ON n.oid = t.relnamespace
+-- WHERE n.nspname='public' AND t.relname='group_members';
+
+-- SELECT * FROM public.group_members ORDER BY group_id, role DESC;
+
+*/

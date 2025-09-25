@@ -3,6 +3,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 
 import groupRoutes from "./routes/groups.js";
+import groupMembersRouter from "./routes/group_members.js";
 import authRoutes from "./routes/auth.js";
 import tmdbRoutes from "./routes/tmdb.js";
 import authExtraRoutes from "./routes/authExtra.js";
@@ -35,6 +36,7 @@ app.use("/api/user", userRoutes);
 
 //
 app.use("/api/groups", groupRoutes);
+app.use("/api/group_members", groupMembersRouter);
 
 
 app.get("/api/test", async (_req, res) => {
