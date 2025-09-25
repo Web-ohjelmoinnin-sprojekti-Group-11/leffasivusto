@@ -1,4 +1,3 @@
-// src/components/movies/MovieCard.jsx
 import { useEffect, useRef, useState } from "react";
 import PropTypes from "prop-types";
 import { Heart } from "lucide-react";
@@ -62,19 +61,43 @@ export default function MovieCard({ movie }) {
       onMouseEnter={onEnter}
       onMouseLeave={onLeave}
     >
-      {/* Kuva */}
-      {hasImage ? (
-        <img
-          src={poster}
-          className="card-img-top card-poster"
-          alt={title ? `Poster for ${title}` : "Poster"}
-          loading="lazy"
-        />
-      ) : (
-        <div className="ratio ratio-2x3 bg-secondary-subtle d-flex align-items-center justify-content-center">
-          <span className="text-muted small">No image</span>
-        </div>
-      )}
+      {/* Kuva + sydän oikeaan yläkulmaan */}
+      <div className="poster-wrap position-relative">
+        {hasImage ? (
+          <img
+            src={poster}
+            className="card-img-top card-poster"
+            alt={title ? `Poster for ${title}` : "Poster"}
+            loading="lazy"
+          />
+        ) : (
+          <div className="ratio ratio-2x3 bg-secondary-subtle d-flex align-items-center justify-content-center">
+            <span className="text-muted small">No image</span>
+          </div>
+        )}
+
+        {/* Suosikki-sydän */}
+        <button
+          type="button"
+          aria-label={fav ? "Remove from favorites" : "Add to favorites"}
+          aria-pressed={fav}
+          disabled={disabled}
+          className={`${btnBase} heart-top-right ${fav ? "is-active" : ""}`}
+          onClick={onHeart}
+        >
+          <Heart
+            size={20}
+            className="heart-icon"
+            style={{
+              fill: fav ? "currentColor" : "transparent",
+              transition: "fill 120ms ease",
+            }}
+          />
+          <span className="visually-hidden">
+            {fav ? "Favorited" : "Not favorited"}
+          </span>
+        </button>
+      </div>
 
       {/* Tekstit */}
       <div className="card-body p-2">
@@ -98,7 +121,6 @@ export default function MovieCard({ movie }) {
           )
         )}
 
-        {/* Kuvaus – liukuu esiin 1.5s hoverin jälkeen */}
         {movie.overview && (
           <div
             className="overview-wrap mt-2"
@@ -109,28 +131,6 @@ export default function MovieCard({ movie }) {
           </div>
         )}
       </div>
-
-      {/* Suosikki-sydän */}
-      <button
-        type="button"
-        aria-label={fav ? "Remove from favorites" : "Add to favorites"}
-        aria-pressed={fav}
-        disabled={disabled}
-        className={`${btnBase} ${fav ? "is-active" : ""}`}
-        onClick={onHeart}
-      >
-        <Heart
-          size={20}
-          className="heart-icon"
-          style={{
-            fill: fav ? "currentColor" : "transparent",
-            transition: "fill 120ms ease",
-          }}
-        />
-        <span className="visually-hidden">
-          {fav ? "Favorited" : "Not favorited"}
-        </span>
-      </button>
     </div>
   );
 }
