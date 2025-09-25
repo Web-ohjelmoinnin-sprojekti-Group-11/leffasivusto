@@ -1,10 +1,14 @@
-import pkg from "pg";        //tietokanta yhteys
-import dotenv from "dotenv";  // muuttuja .envstä
+// server/db.js
+import pkg from "pg";        // tietokanta yhteys
+import dotenv from "dotenv";  // muuttuja .env:stä
+import path from "path";      // polun käsittelyä varten
 
-dotenv.config();
+// Hakee .env-tiedoston yhden tason ylempää server-kansiosta
+dotenv.config({ path: path.resolve("../.env") });
+
 const { Pool } = pkg;
 
-//tietokannan yhteyspooli
+// tietokannan yhteyspooli
 const pool = new Pool({
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
