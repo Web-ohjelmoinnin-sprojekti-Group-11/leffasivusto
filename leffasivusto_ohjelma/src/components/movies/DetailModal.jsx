@@ -1,32 +1,50 @@
 // src/components/movies/DetailModal.jsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Modal, Button, Spinner, Form, Card, Badge } from "react-bootstrap";
 import useDetails from "../../hooks/useDetails";
 import * as reviewApi from "../../services/reviewService";
 import { getToken } from "../../services/token";
+import api from "../../services/api";
 
 const IMG = (p, size = "w500") => (p ? `https://image.tmdb.org/t/p/${size}${p}` : null);
 
-export default function DetailModal({ show, item, onHide }) {
-  // --- TMDB id ---
+/**
+ * Props:
+ * - show: boolean
+ * - item: { id | tmdb_id, ... }
+ * - onHide: () => void
+ * - groupId?: number|string            // if provided -> single "Add to this group" button
+ * - onAddedToGroup?: () => void        // optional callback after successful add
+ */
+export default function DetailModal({ show, item, onHide, groupId, onAddedToGroup }) {
   const tmdbId = item?.id ?? item?.tmdb_id ?? null;
 
-  // --- API: TMDB details ---
-  const { media, data, loading, error } = useDetails(item);
+  // TMDB details
+  const { data, loading, error } = useDetails(item);
 
-  // --- Reviews state ---
+  // Reviews
   const [summary, setSummary] = useState({ count: 0, avg: 0 });
   const [reviews, setReviews] = useState([]);
   const [my, setMy] = useState(null);
 
-  // --- Form state ---
   const isAuthed = !!getToken();
   const [rating, setRating] = useState(5);
   const [text, setText] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveErr, setSaveErr] = useState("");
 
-  // Lataa arvostelut ja yhteenveto kun modal avataan & tmdbId saatavilla
+  // Add-to-group states
+  const [adding, setAdding] = useState(false);
+  const [addErr, setAddErr] = useState("");
+
+  // If not on group page, allow choosing the target group
+  const [myGroups, setMyGroups] = useState([]);
+  const [selectedGroup, setSelectedGroup] = useState("");
+
+  const isPerson = data?.kind === "person";
+  const canAddSingle = !!groupId && !!tmdbId && isAuthed && !isPerson;
+  const canChooseGroup = !groupId && !!tmdbId && isAuthed && !isPerson;
+
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
@@ -40,12 +58,10 @@ export default function DetailModal({ show, item, onHide }) {
         if (cancelled) return;
         setSummary(sum || { count: 0, avg: 0 });
         setReviews(Array.isArray(list) ? list : []);
-      } catch (e) {
-        // konsoliin, UI pysyy toimivana vaikka reviews kaatuisi
-        console.warn("reviews load failed:", e);
+      } catch {
+        /* ignore */
       }
 
-      // hae oma arvostelu (jos kirjautunut)
       if (isAuthed) {
         try {
           const mine = await reviewApi.getMine();
@@ -59,8 +75,7 @@ export default function DetailModal({ show, item, onHide }) {
             setRating(5);
             setText("");
           }
-        } catch (e) {
-          console.warn("my review load failed:", e);
+        } catch {
           setMy(null);
         }
       } else {
@@ -68,10 +83,27 @@ export default function DetailModal({ show, item, onHide }) {
       }
     };
     load();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [show, tmdbId, isAuthed]);
+
+  // Load my groups when selection UI is needed
+  useEffect(() => {
+    const loadGroups = async () => {
+      if (!show || !canChooseGroup) return;
+      try {
+        const res = await api.get("/groups/mine", {
+          headers: { Authorization: `Bearer ${getToken()}` },
+        });
+        const groups = res.data?.groups || [];
+        setMyGroups(groups);
+        setSelectedGroup(groups[0]?.group_id ?? "");
+      } catch {
+        setMyGroups([]);
+        setSelectedGroup("");
+      }
+    };
+    loadGroups();
+  }, [show, canChooseGroup]);
 
   const handleSave = async () => {
     if (!isAuthed) {
@@ -87,7 +119,6 @@ export default function DetailModal({ show, item, onHide }) {
     try {
       const saved = await reviewApi.createOrUpdate({ movie_id: tmdbId, rating, text });
       setMy(saved);
-      // päivitä listat & yhteenveto
       const [sum, list] = await Promise.all([
         reviewApi.getSummary(tmdbId),
         reviewApi.getByMovie(tmdbId, { limit: 20, offset: 0 }),
@@ -101,11 +132,36 @@ export default function DetailModal({ show, item, onHide }) {
     }
   };
 
-  if (!show) return null;
+  const postAdd = async (targetGroupId) => {
+    setAddErr("");
+    setAdding(true);
+    try {
+      await api.post(
+        `/group_content/${targetGroupId}/movies`,
+        { movie_id: tmdbId },
+        { headers: { Authorization: `Bearer ${getToken()}` } }
+      );
+      if (onAddedToGroup) onAddedToGroup();
+    } catch (e) {
+      setAddErr(e?.response?.data?.error || "Failed to add to group");
+    } finally {
+      setAdding(false);
+    }
+  };
 
+  const handleAddToGroup = () => postAdd(groupId);
+  const handleAddToChosen = () => {
+    if (!selectedGroup) {
+      setAddErr("Select a group first");
+      return;
+    }
+    postAdd(selectedGroup);
+  };
+
+  if (!show) return null;
   const title = item?.title || item?.name || "Details";
 
-  // ---------- Details runko ----------
+  // ---------- BODY ----------
   let body = null;
 
   if (loading) {
@@ -116,7 +172,7 @@ export default function DetailModal({ show, item, onHide }) {
     );
   } else if (error) {
     body = <div className="text-danger p-3">{error}</div>;
-  } else if (data?.kind === "title") {
+  } else if (data?.kind === "title" || data?.kind === "movie" || data?.kind === "tv") {
     const d = data.detail;
     const credits = data.credits || {};
     const cast = (credits.cast || []).slice(0, 10);
@@ -127,15 +183,12 @@ export default function DetailModal({ show, item, onHide }) {
     body = (
       <div className="row g-3">
         <div className="col-12 col-md-4">
-          {d?.poster_path && (
-            <img src={IMG(d.poster_path)} alt={d.title} className="img-fluid rounded" />
-          )}
+          {d?.poster_path && <img src={IMG(d.poster_path)} alt={d.title || d.name} className="img-fluid rounded" />}
         </div>
         <div className="col-12 col-md-8">
           <h4 className="mb-1">{d?.title || d?.name}</h4>
           <div className="text-muted mb-2">
-            {(d?.release_date || d?.first_air_date || "").slice(0, 4)} • ⭐{" "}
-            {Number(d?.vote_average || 0).toFixed(1)}
+            {(d?.release_date || d?.first_air_date || "").slice(0, 4)} • ⭐ {Number(d?.vote_average || 0).toFixed(1)}
           </div>
           {d?.overview && <p className="mb-3">{d.overview}</p>}
 
@@ -164,7 +217,7 @@ export default function DetailModal({ show, item, onHide }) {
             </>
           )}
 
-          {/* ---------- Reviews summary ---------- */}
+          {/* Reviews summary */}
           <Card className="mb-3">
             <Card.Body className="d-flex align-items-center justify-content-between">
               <div>
@@ -181,7 +234,28 @@ export default function DetailModal({ show, item, onHide }) {
             </Card.Body>
           </Card>
 
-          {/* ---------- My review form (signed-in) ---------- */}
+          {/* ✅ Community reviews – added back */}
+          {!!reviews.length && (
+            <div className="mb-3">
+              <h6 className="mt-2">Community reviews</h6>
+              <ul className="mb-0">
+                {reviews.slice(0, 5).map((r) => (
+                  <li key={r.review_id} className="mb-1">
+                    <span className="me-2">⭐ {r.rating}</span>
+                    {r.created_at && (
+                      <span className="text-muted me-2">
+                        ({new Date(r.created_at).toLocaleDateString()})
+                      </span>
+                    )}
+                    <span className="me-2">{r.user_email || r.user || r.user_id}</span>
+                    {r.text && <span>— {r.text}</span>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* My review form */}
           {isAuthed && (
             <Card className="mb-3">
               <Card.Body>
@@ -196,14 +270,9 @@ export default function DetailModal({ show, item, onHide }) {
                 <Form>
                   <Form.Group className="mb-2">
                     <Form.Label>Rating (1–5)</Form.Label>
-                    <Form.Select
-                      value={rating}
-                      onChange={(e) => setRating(Number(e.target.value))}
-                    >
+                    <Form.Select value={rating} onChange={(e) => setRating(Number(e.target.value))}>
                       {[1, 2, 3, 4, 5].map((n) => (
-                        <option key={n} value={n}>
-                          {n}
-                        </option>
+                        <option key={n} value={n}>{n}</option>
                       ))}
                     </Form.Select>
                   </Form.Group>
@@ -226,21 +295,38 @@ export default function DetailModal({ show, item, onHide }) {
             </Card>
           )}
 
-          {/* ---------- Latest reviews list ---------- */}
-          {!!reviews.length && (
-            <>
-              <h6 className="mt-3">Latest reviews</h6>
-              <ul className="mb-0">
-                {reviews.slice(0, 3).map((r) => (
-                  <li key={r.review_id}>
-                    <span className="me-2">⭐ {r.rating}</span>
-                    <span className="text-muted me-2">({new Date(r.created_at).toLocaleDateString()})</span>
-                    <span className="me-2">{r.user_email}</span>
-                    <span>— {r.text}</span>
-                  </li>
-                ))}
-              </ul>
-            </>
+          {/* Add to group - single button (group page) */}
+          {canAddSingle && (
+            <div className="mt-3 d-flex align-items-center">
+              <Button variant="primary" onClick={handleAddToGroup} disabled={adding}>
+                {adding ? "Adding..." : "Add to this group"}
+              </Button>
+              {addErr && <div className="text-danger ms-3">{addErr}</div>}
+            </div>
+          )}
+
+          {/* Add to group - choose target group (outside group page) */}
+          {canChooseGroup && (
+            <Card className="mt-3">
+              <Card.Body className="d-flex flex-wrap align-items-center gap-2">
+                <Form.Select
+                  style={{ maxWidth: 320 }}
+                  value={selectedGroup}
+                  onChange={(e) => setSelectedGroup(e.target.value)}
+                >
+                  {myGroups.length === 0 && <option value="">No groups</option>}
+                  {myGroups.map(g => (
+                    <option key={g.group_id} value={g.group_id}>
+                      {g.group_name} {g.role === "admin" ? "(owner)" : ""}
+                    </option>
+                  ))}
+                </Form.Select>
+                <Button onClick={handleAddToChosen} disabled={adding || !selectedGroup}>
+                  {adding ? "Adding..." : "Add to selected group"}
+                </Button>
+                {addErr && <div className="text-danger">{addErr}</div>}
+              </Card.Body>
+            </Card>
           )}
         </div>
       </div>
@@ -266,7 +352,7 @@ export default function DetailModal({ show, item, onHide }) {
               <ul className="mb-2">
                 {cast.map((c) => (
                   <li key={`${c.credit_id || c.id}-cast`}>
-                    {(c.title || c.name) || "—"} {c.release_date ? `(${c.release_date.slice(0,4)})` : ""}
+                    {(c.title || c.name) || "—"} {c.release_date ? `(${c.release_date.slice(0, 4)})` : ""}
                   </li>
                 ))}
               </ul>
@@ -279,7 +365,7 @@ export default function DetailModal({ show, item, onHide }) {
               <ul className="mb-0">
                 {crew.map((c) => (
                   <li key={`${c.credit_id || c.id}-crew`}>
-                    {c.job} — {(c.title || c.name) || "—"} {c.release_date ? `(${c.release_date.slice(0,4)})` : ""}
+                    {c.job} — {(c.title || c.name) || "—"} {c.release_date ? `(${c.release_date.slice(0, 4)})` : ""}
                   </li>
                 ))}
               </ul>

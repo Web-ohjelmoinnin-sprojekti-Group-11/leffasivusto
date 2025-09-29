@@ -107,6 +107,7 @@ export default function Home() {
       <div className="container-fluid px-0 reveal delay-1">
         <HeroSection
           showSearch
+          glowSweep  
           greetingText="Which movie shall we watch today?"
           greetingDurationMs={2500}
         />
