@@ -9,7 +9,7 @@ export default function GroupDetail() {
   const navigate = useNavigate();
 
   const [group, setGroup] = useState(null);
-  const [members, setMembers] = useState([]);      // sisältää myös role='pending'
+  const [members, setMembers] = useState([]);
   const [membership, setMembership] = useState(null); // { role: 'admin'|'member' }
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -22,12 +22,12 @@ export default function GroupDetail() {
         setLoading(true);
         setError(null);
 
-        // 1) Ryhmä + oma rooli (403 jos ei jäsen → pois)
+        // 1) group + my role
         const g = await api.get(`/groups/${id}`, auth);
         setGroup(g.data.group);
         setMembership(g.data.membership || null);
 
-        // 2) Jäsenet (NYT /api/group_members/:id)
+        // 2) members (includes pending)
         try {
           const m = await api.get(`/group_members/${id}`, auth);
           setMembers(m.data.members || []);
@@ -75,7 +75,7 @@ export default function GroupDetail() {
   const reject = async (userId) => {
     try {
       await api.post(`/group_members/${id}/requests/${userId}`, { action: "reject" }, auth);
-    setMembers((prev) => prev.filter((m) => !(m.user_id === userId && m.role === "pending")));
+      setMembers((prev) => prev.filter((m) => !(m.user_id === userId && m.role === "pending")));
     } catch (err) {
       console.error("Reject failed:", err);
       setError("Failed to reject request");
@@ -94,6 +94,21 @@ export default function GroupDetail() {
     }
   };
 
+  const leaveGroup = async () => {
+    if (!window.confirm("Leave this group?")) return;
+    try {
+      await api.delete(`/group_members/${id}/leave`, auth);
+      // Option A: palaa listaan
+      navigate("/groups");
+      // Option B (jos haluat jäädä sivulle): päivitä oma membership & listat
+      // setMembership(null);
+      // setMembers(prev => prev.filter(m => m.user_id !== myId)); // myId pitäisi tulla JWT:stä
+    } catch (err) {
+      console.error("Leave group error:", err);
+      setError(err?.response?.data?.error || "Failed to leave group");
+    }
+  };
+
   if (error) return <Alert variant="danger" className="mt-3">{error}</Alert>;
   if (loading) return <div className="my-4"><Spinner animation="border" /></div>;
   if (!group) return <p>Not found.</p>;
@@ -105,11 +120,13 @@ export default function GroupDetail() {
     <div>
       <div className="d-flex align-items-start justify-content-between">
         <h2 className="mb-3">{group.group_name}</h2>
-        {isOwner && (
-          <Button variant="danger" onClick={deleteGroup}>
-            Delete group
-          </Button>
-        )}
+
+        {/* Owner: can delete; Member: can leave */}
+        {isOwner ? (
+          <Button variant="danger" onClick={deleteGroup}>Delete group</Button>
+        ) : membership?.role === "member" ? (
+          <Button variant="outline-danger" onClick={leaveGroup}>Leave group</Button>
+        ) : null}
       </div>
 
       {isOwner && (
