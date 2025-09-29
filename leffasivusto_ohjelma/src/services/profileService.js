@@ -29,6 +29,9 @@ export const profileApi = {
   getReviews:     () => request('get',    '/user/reviews'),
   removeReview:   (id) => request('delete', `/user/reviews/${id}`),
   getHistory:     () => request('get',    '/user/history'),
+  getWatchLater:  () => request('get',    '/user/watch-later'),
+  addWatchLater:  ({ movieId, ...rest }) => request('post',   '/user/watch-later', { movieId, ...rest }),
+  removeWatchLater: (movieId) => request('delete', `/user/watch-later/${movieId}`),
 }
 
 export default profileApi

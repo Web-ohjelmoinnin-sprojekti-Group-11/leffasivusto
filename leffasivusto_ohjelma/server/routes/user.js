@@ -208,4 +208,75 @@ router.get("/history", async (req, res) => {
   }
 });
 
+/**
+ * GET /api/user/watch-later
+ * Returns movies saved to watch later by the user.
+ */
+router.get("/watch-later", async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT movie_id AS id, created_at
+         FROM watch_later
+        WHERE user_id = $1
+        ORDER BY created_at DESC`,
+      [req.user.user_id]
+    );
+    return res.json(rows);
+  } catch (e) {
+    console.error("GET /api/user/watch-later", e);
+    return res.status(500).json({ error: "Failed to load watch later list" });
+  }
+});
+
+/**
+ * POST /api/user/watch-later
+ * Adds a movie to the watch later list (idempotent).
+ * Body: { movieId }
+ */
+router.post("/watch-later", async (req, res) => {
+  const movieId = Number(req.body?.movieId);
+  if (!Number.isFinite(movieId)) {
+    return res.status(400).json({ error: "Invalid movie id" });
+  }
+
+  try {
+    await pool.query(
+      `INSERT INTO watch_later (user_id, movie_id)
+       VALUES ($1, $2)
+       ON CONFLICT (user_id, movie_id) DO NOTHING`,
+      [req.user.user_id, movieId]
+    );
+    return res.status(201).json({ ok: true, movieId });
+  } catch (e) {
+    console.error("POST /api/user/watch-later", e);
+    return res.status(500).json({ error: "Failed to add movie to watch later" });
+  }
+});
+
+/**
+ * DELETE /api/user/watch-later/:movieId
+ * Removes a movie from the watch later list.
+ */
+router.delete("/watch-later/:movieId", async (req, res) => {
+  const movieId = Number(req.params.movieId);
+  if (!Number.isFinite(movieId)) {
+    return res.status(400).json({ error: "Invalid movie id" });
+  }
+
+  try {
+    const { rowCount } = await pool.query(
+      `DELETE FROM watch_later
+        WHERE user_id = $1 AND movie_id = $2`,
+      [req.user.user_id, movieId]
+    );
+    if (!rowCount) {
+      return res.status(404).json({ error: "Movie not found in watch later" });
+    }
+    return res.status(204).end();
+  } catch (e) {
+    console.error("DELETE /api/user/watch-later/:movieId", e);
+    return res.status(500).json({ error: "Failed to remove movie from watch later" });
+  }
+});
+
 export default router;
