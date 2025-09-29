@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import PropTypes from "prop-types";
-import { Heart } from "lucide-react";
+import { Heart, Clock } from "lucide-react";
 import { useFavorites } from "../../hooks/useFavorites";
+import { useWatchLater } from "../../hooks/useWatchLater";
 import { useAuth } from "../../state/AuthContext.jsx";
 
 const btnBase = "floating-heart-btn btn btn-light rounded-pill shadow-sm";
@@ -19,8 +20,8 @@ export default function MovieCard({ movie }) {
     typeof movie.vote === "number"
       ? movie.vote
       : typeof movie.vote_average === "number"
-      ? movie.vote_average
-      : null;
+        ? movie.vote_average
+        : null;
 
   const isPerson = movie.mediaType === "person" || movie.isPerson === true;
 
@@ -53,11 +54,21 @@ export default function MovieCard({ movie }) {
     if (!disabled) toggle(movie);
   };
 
+  // ----- Watch Later -----
+  const { isInWatchLater, toggle: toggleWatchLater, adding: addingWL, removing: removingWL } = useWatchLater();
+  const inWatchLater = isInWatchLater(movie.id);
+  const disabledWL = addingWL || removingWL || !isAuthenticated;
+
+  const onClock = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (!disabledWL) toggleWatchLater(movie);
+  };
+
   return (
     <div
-      className={`card h-100 shadow-sm movie-card position-relative ${
-        reveal ? "is-revealed" : ""
-      }`}
+      className={`card h-100 shadow-sm movie-card position-relative ${reveal ? "is-revealed" : ""
+        }`}
       onMouseEnter={onEnter}
       onMouseLeave={onLeave}
     >
@@ -95,6 +106,28 @@ export default function MovieCard({ movie }) {
           />
           <span className="visually-hidden">
             {fav ? "Favorited" : "Not favorited"}
+          </span>
+        </button>
+
+        {/* Katso myöhemmin-kello */}
+        <button
+          type="button"
+          aria-label={inWatchLater ? "Remove from watch later" : "Add to watch later"}
+          aria-pressed={inWatchLater}
+          disabled={disabledWL}
+          className={`${btnBase} clock-top-right ${inWatchLater ? "is-active" : ""}`}
+          onClick={onClock}
+        >
+          <Clock
+            size={20}
+            className="clock-icon"
+            style={{
+              fill: inWatchLater ? "currentColor" : "transparent",
+              transition: "fill 120ms ease",
+            }}
+          />
+          <span className="visually-hidden">
+            {inWatchLater ? "In Watch Later" : "Add to Watch Later"}
           </span>
         </button>
       </div>

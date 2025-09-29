@@ -60,6 +60,15 @@ CREATE TABLE favorite_list_movies (
     PRIMARY KEY (favorite_list_id, movie_id)
 );
 
+-- katso myöhemmin-lista
+CREATE TABLE IF NOT EXISTS watch_later (
+  id SERIAL PRIMARY KEY,
+  user_id INT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+  movie_id INT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id, movie_id)
+);
+
 -- ryhmän sisältö
 CREATE TABLE group_content (
     content_id SERIAL PRIMARY KEY,
@@ -73,7 +82,7 @@ CREATE TABLE group_content (
 
 
 -- review taulun konffi, aja kokonaisuudessaan.
-/*
+
 BEGIN;
 
 -- 0) Luo taulu jos puuttuu (minimirakenne, täydennetään alla)
@@ -195,8 +204,6 @@ CREATE INDEX IF NOT EXISTS idx_reviews_created_at ON reviews(created_at DESC);
 
 COMMIT;
 
-*/
-
 
 -- Group scriptejä:
 -- Tämän jälkeen saa lähetettyä join-kutsun (pending-tila)
@@ -262,3 +269,4 @@ COMMIT;
 -- SELECT * FROM public.group_members ORDER BY group_id, role DESC;
 
 */
+

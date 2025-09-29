@@ -4,6 +4,7 @@ import { useAuth } from "../state/AuthContext.jsx";
 import Favorites from "../components/profile/Favorites.jsx";
 import Reviews from "../components/profile/Reviews.jsx";
 import History from "../components/profile/History.jsx";
+import WatchLater from "../components/profile/WatchLater.jsx"
 import UpdateProfileForm from "../components/profile/UpdateProfileForm.jsx";
 import ChangePasswordForm from "../components/profile/ChangePasswordForm.jsx";
 import "../styles/profile.css";
@@ -33,6 +34,7 @@ export default function Profile() {
     if (tab === "favorites") return <Favorites />;
     if (tab === "reviews") return <Reviews />;
     if (tab === "history") return <History />;
+    if (tab === "watchlater") return <WatchLater />;
     return (
       <Row xs={1} md={2} className="g-3">
         <Col><UpdateProfileForm /></Col>
@@ -48,6 +50,7 @@ export default function Profile() {
         <Tab eventKey="favorites" title="Favorites" />
         <Tab eventKey="reviews"   title="Reviews" />
         <Tab eventKey="history"   title="Recently Watched" />
+        <Tab eventKey="watchlater" title="Watch Later" />
         <Tab eventKey="settings"  title="Settings" />
       </Tabs>
       {content}

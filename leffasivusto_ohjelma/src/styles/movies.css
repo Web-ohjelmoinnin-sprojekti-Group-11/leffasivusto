@@ -34,7 +34,7 @@
 .floating-heart-btn.is-active { color: var(--bs-danger); }
 .floating-heart-btn .heart-icon { display: block; }
 
-/* Overview – perusmuoto (kortti kiinni) */
+/* --- Overview – perusmuoto (kortti kiinni) ------------------------------- */
 .movie-card .card-text {
   font-size: .85rem;
   line-height: 1.3rem;
@@ -121,4 +121,25 @@
 @media (max-width: 768px) {
   .movie-card.is-revealed .overview-wrap { max-height: 12rem; } /* ~9 riviä */
   .movie-card .overview-content { -webkit-line-clamp: 9; }
+}
+
+/* ---------- Watch Later Clock Button ---------- */
+.floating-clock-btn {
+  position: absolute;
+  width: 40px; height: 40px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: none;
+  transition: transform 120ms ease, box-shadow 120ms ease, background-color 120ms ease, opacity 120ms ease;
+  opacity: .95;
+  z-index: 2;
+}
+
+.clock-top-right { top: 3.5rem; right: .5rem; }
+.floating-clock-btn:hover { transform: translateY(-1px) scale(1.05); }
+.floating-clock-btn:active { transform: scale(0.98); }
+.clock-top-right.is-active { color: var(--bs-warning); }
+.clock-top-right .clock-icon { display: block; }
+
+@media (max-width: 576px) {
+  .floating-clock-btn { width: 34px; height: 34px; }
 }
