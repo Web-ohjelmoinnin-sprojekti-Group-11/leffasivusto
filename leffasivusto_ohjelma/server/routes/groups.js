@@ -5,7 +5,7 @@ import { verifyJWT } from "../middleware/auth.js";
 
 const router = express.Router();
 
-/* Luo uusi ryhmä (transaktiona) */
+/* Create group (transaction) */
 router.post("/", verifyJWT, async (req, res) => {
   const rawName = req.body?.group_name ?? "";
   const groupName = String(rawName).trim();
@@ -26,7 +26,7 @@ router.post("/", verifyJWT, async (req, res) => {
     );
     const group = rows[0];
 
-    // HUOM: kannan CHECK sallii vain ('member','admin') → käytetään 'admin'
+    // CHECK sallii ('admin','member','pending') – luonti = admin
     await client.query(
       `INSERT INTO group_members (user_id, group_id, role)
        VALUES ($1, $2, 'admin')`,
@@ -44,7 +44,7 @@ router.post("/", verifyJWT, async (req, res) => {
   }
 });
 
-/* Listaa kaikki ryhmät */
+/* List all groups (public) */
 router.get("/", async (_req, res) => {
   try {
     const { rows } = await pool.query(
@@ -59,7 +59,26 @@ router.get("/", async (_req, res) => {
   }
 });
 
-/* Näytä yksittäinen ryhmä (vain jäsenille) */
+/* My groups (must be BEFORE '/:id' routes!) */
+router.get("/mine", verifyJWT, async (req, res) => {
+  const userId = req.user.user_id;
+  try {
+    const { rows } = await pool.query(
+      `SELECT g.group_id, g.group_name, g.owner_id, gm.role, g.created_at
+       FROM groups g
+       JOIN group_members gm ON gm.group_id = g.group_id
+       WHERE gm.user_id = $1 AND gm.role IN ('admin','member')
+       ORDER BY g.created_at DESC`,
+      [userId]
+    );
+    res.json({ groups: rows });
+  } catch (err) {
+    console.error("My groups fetch error:", err);
+    res.status(500).json({ error: "Failed to fetch your groups" });
+  }
+});
+
+/* Get single group (members only) */
 router.get("/:id", verifyJWT, async (req, res) => {
   const groupId = req.params.id;
   const userId = req.user.user_id;
@@ -86,7 +105,7 @@ router.get("/:id", verifyJWT, async (req, res) => {
   }
 });
 
-/* Poista ryhmä (vain omistaja) */
+/* Delete group (owner only) */
 router.delete("/:id", verifyJWT, async (req, res) => {
   const groupId = req.params.id;
   const userId = req.user.user_id;
