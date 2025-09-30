@@ -270,3 +270,49 @@ COMMIT;
 
 */
 
+
+--Showtimes taulun konffi, aja kokonaisuudessaan.
+
+-- CREATE or UPDATE table for shared showtimes
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.tables
+    WHERE table_schema = 'public' AND table_name = 'showtimes'
+  ) THEN
+    CREATE TABLE public.showtimes (
+      id           SERIAL PRIMARY KEY,
+      movie_id     INTEGER NULL,
+      title        TEXT NOT NULL,
+      theatre_name TEXT NOT NULL,
+      showtime     TIMESTAMPTZ NOT NULL,
+      group_id     INTEGER NOT NULL REFERENCES groups(group_id) ON DELETE CASCADE,
+      user_id      INTEGER NULL REFERENCES users(user_id) ON DELETE SET NULL,
+      created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS idx_showtimes_group_time ON public.showtimes(group_id, showtime);
+  END IF;
+END$$;
+
+-- Add missing columns on existing tables
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='showtimes' AND column_name='title') THEN
+    ALTER TABLE public.showtimes ADD COLUMN title TEXT;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='showtimes' AND column_name='user_id') THEN
+    ALTER TABLE public.showtimes ADD COLUMN user_id INTEGER NULL REFERENCES users(user_id) ON DELETE SET NULL;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='showtimes' AND column_name='created_at') THEN
+    ALTER TABLE public.showtimes ADD COLUMN created_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+  END IF;
+
+  -- ensure types
+  ALTER TABLE public.showtimes ALTER COLUMN theatre_name TYPE TEXT;
+  ALTER TABLE public.showtimes ALTER COLUMN showtime TYPE TIMESTAMPTZ USING showtime::timestamptz;
+END$$;
+
+CREATE INDEX IF NOT EXISTS idx_showtimes_group_time ON public.showtimes(group_id, showtime);
+

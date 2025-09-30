@@ -1,7 +1,7 @@
 // src/pages/Groups/GroupDetail.jsx
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Button, ListGroup, Alert, Spinner, Row, Col } from "react-bootstrap";
+import { Button, ListGroup, Alert, Spinner, Row, Col, Card } from "react-bootstrap";
 import api from "../../services/api";
 import { getToken } from "../../services/token";
 
@@ -18,22 +18,42 @@ export default function GroupDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Authorization header (memoituna ettei muutu joka renderillä)
+  // movies
+  const [libLoading, setLibLoading] = useState(true);
+  const [libError, setLibError] = useState(null);
+  const [libMovies, setLibMovies] = useState([]);
+
+  // showtimes (shared to this group)
+  const [stLoading, setStLoading] = useState(true);
+  const [stError, setStError] = useState(null);
+  const [showtimes, setShowtimes] = useState([]);
+
+  // modal
+  const [showModal, setShowModal] = useState(false);
+  const [modalItem, setModalItem] = useState(null);
+
   const auth = useMemo(
     () => ({ headers: { Authorization: `Bearer ${getToken()}` } }),
     []
   );
 
-  // Group library
-  const [libLoading, setLibLoading] = useState(true);
-  const [libError, setLibError] = useState(null);
-  const [libMovies, setLibMovies] = useState([]);
+  const fmtTime = (iso) => {
+    try {
+      const d = new Date(iso);
+      return d.toLocaleString("fi-FI", {
+        weekday: "short",
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch {
+      return iso || "";
+    }
+  };
 
-  // Modal
-  const [showModal, setShowModal] = useState(false);
-  const [modalItem, setModalItem] = useState(null);
-
-  // Ryhmän perustiedot + oma rooli + jäsenet
+  // basics
   useEffect(() => {
     (async () => {
       try {
@@ -63,22 +83,19 @@ export default function GroupDetail() {
     })();
   }, [id, navigate, auth]);
 
-  // Lataa ryhmän elokuvat (kutsutaan myös onnistuneen lisäyksen jälkeen)
+  // movies
   const loadLibrary = async () => {
     try {
       setLibLoading(true);
       setLibError(null);
       setLibMovies([]);
 
-      // 1) Movie-id:t ryhmälle
       const gc = await api.get(`/group_content/${id}/movies`, auth);
       const items = gc.data?.movies || [];
 
-      // 2) Hae TMDB-detaljit ja rakenna kortit
       const results = await Promise.all(
         items.map(async (x) => {
           const tmdbId = Number(x.movie_id);
-
           let payload = null;
           try {
             const r1 = await api.get(`/tmdb/title/${tmdbId}`);
@@ -93,7 +110,6 @@ export default function GroupDetail() {
               }
             }
           }
-
           if (!payload) {
             return {
               id: tmdbId,
@@ -104,30 +120,24 @@ export default function GroupDetail() {
               vote_average: null,
               releaseDate: "",
               added_by: x.added_by,
-              mediaType: "movie", // oletus jos ei saatu detaileja
+              mediaType: "movie",
             };
           }
-
           const d = payload.detail || payload;
           const mediaType = d.title ? "movie" : "tv";
-
           return {
             id: tmdbId,
             title: d.title || d.name || `#${tmdbId}`,
             name: d.name,
-            poster: d.poster_path
-              ? `https://image.tmdb.org/t/p/w500${d.poster_path}`
-              : null,
+            poster: d.poster_path ? `https://image.tmdb.org/t/p/w500${d.poster_path}` : null,
             overview: d.overview || "",
-            vote_average:
-              typeof d.vote_average === "number" ? d.vote_average : null,
+            vote_average: typeof d.vote_average === "number" ? d.vote_average : null,
             releaseDate: d.release_date || d.first_air_date || "",
             added_by: x.added_by,
-            mediaType, // *** TÄRKEÄ: camelCase ***
+            mediaType,
           };
         })
       );
-
       setLibMovies(results);
     } catch (err) {
       console.error(err);
@@ -142,6 +152,33 @@ export default function GroupDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
+  // showtimes for this group
+  const loadShowtimes = async () => {
+    try {
+      setStLoading(true);
+      setStError(null);
+      const res = await api.get(`/showtimes/${id}`, auth);
+      const list = (res.data?.showtimes || [])
+        .map((s) => ({
+          ...s,
+          pretty_time: s.pretty_time || fmtTime(s.showtime || s.created_at),
+        }))
+        .sort((a, b) => new Date(a.showtime) - new Date(b.showtime));
+      setShowtimes(list);
+    } catch (e) {
+      console.error(e);
+      setStError("Failed to load group showtimes");
+    } finally {
+      setStLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadShowtimes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  // member actions
   const isOwner = membership?.role === "admin";
 
   const removeMember = async (userId) => {
@@ -156,14 +193,8 @@ export default function GroupDetail() {
 
   const accept = async (userId) => {
     try {
-      await api.post(
-        `/group_members/${id}/requests/${userId}`,
-        { action: "accept" },
-        auth
-      );
-      setMembers((prev) =>
-        prev.map((m) => (m.user_id === userId ? { ...m, role: "member" } : m))
-      );
+      await api.post(`/group_members/${id}/requests/${userId}`, { action: "accept" }, auth);
+      setMembers((prev) => prev.map((m) => (m.user_id === userId ? { ...m, role: "member" } : m)));
     } catch (err) {
       console.error("Accept failed:", err);
       setError("Failed to accept request");
@@ -172,14 +203,8 @@ export default function GroupDetail() {
 
   const reject = async (userId) => {
     try {
-      await api.post(
-        `/group_members/${id}/requests/${userId}`,
-        { action: "reject" },
-        auth
-      );
-      setMembers((prev) =>
-        prev.filter((m) => !(m.user_id === userId && m.role === "pending"))
-      );
+      await api.post(`/group_members/${id}/requests/${userId}`, { action: "reject" }, auth);
+      setMembers((prev) => prev.filter((m) => !(m.user_id === userId && m.role === "pending")));
     } catch (err) {
       console.error("Reject failed:", err);
       setError("Failed to reject request");
@@ -188,12 +213,7 @@ export default function GroupDetail() {
 
   const deleteGroup = async () => {
     if (!group) return;
-    if (
-      !window.confirm(
-        `Delete group "${group.group_name}"? This cannot be undone.`
-      )
-    )
-      return;
+    if (!window.confirm(`Delete group "${group.group_name}"? This cannot be undone.`)) return;
     try {
       await api.delete(`/groups/${id}`, auth);
       navigate("/groups");
@@ -214,7 +234,6 @@ export default function GroupDetail() {
     }
   };
 
-  // Avataan modal – annetaan mukaan myös mediaType
   const openModal = (m) => {
     setModalItem({
       id: Number(m.id),
@@ -253,25 +272,13 @@ export default function GroupDetail() {
           ) : (
             <ListGroup className="mb-4">
               {pending.map((r) => (
-                <ListGroup.Item
-                  key={r.user_id}
-                  className="d-flex justify-content-between align-items-center"
-                >
+                <ListGroup.Item key={r.user_id} className="d-flex justify-content-between align-items-center">
                   <span>{r.username || r.email || r.user_id}</span>
                   <div>
-                    <Button
-                      size="sm"
-                      variant="success"
-                      className="me-2"
-                      onClick={() => accept(r.user_id)}
-                    >
+                    <Button size="sm" variant="success" className="me-2" onClick={() => accept(r.user_id)}>
                       Accept
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="outline-danger"
-                      onClick={() => reject(r.user_id)}
-                    >
+                    <Button size="sm" variant="outline-danger" onClick={() => reject(r.user_id)}>
                       Reject
                     </Button>
                   </div>
@@ -289,21 +296,10 @@ export default function GroupDetail() {
       ) : (
         <ListGroup className="mb-4">
           {normalMembers.map((m) => (
-            <ListGroup.Item
-              key={m.user_id}
-              className="d-flex justify-content-between align-items-center"
-            >
-              <span>
-                {m.username || m.email || m.user_id} ({m.role})
-              </span>
+            <ListGroup.Item key={m.user_id} className="d-flex justify-content-between align-items-center">
+              <span>{m.username || m.email || m.user_id} ({m.role})</span>
               {isOwner && m.role !== "admin" && (
-                <Button
-                  variant="danger"
-                  size="sm"
-                  onClick={() => removeMember(m.user_id)}
-                >
-                  Remove
-                </Button>
+                <Button variant="danger" size="sm" onClick={() => removeMember(m.user_id)}>Remove</Button>
               )}
             </ListGroup.Item>
           ))}
@@ -313,9 +309,7 @@ export default function GroupDetail() {
       {/* Group movies */}
       <div className="d-flex align-items-center justify-content-between">
         <h4 className="mt-2">Group movies</h4>
-        <small className="text-muted">
-          Click a card to open details. Detail modal has “Add to this group”.
-        </small>
+        <small className="text-muted">Click a card to open details. Detail modal has “Add to this group”.</small>
       </div>
 
       {libLoading ? (
@@ -328,19 +322,39 @@ export default function GroupDetail() {
         <Row xs={2} sm={3} md={4} lg={6} className="g-3 mt-1">
           {libMovies.map((m) => (
             <Col key={`${m.id}-${m.mediaType || "movie"}`}>
-              <div
-                role="button"
-                onClick={() => openModal(m)}
-                className="text-decoration-none"
-              >
+              <div role="button" onClick={() => openModal(m)} className="text-decoration-none">
                 <MovieCard movie={m} />
-                {m.added_by && (
-                  <div className="small text-muted mt-1">added by {m.added_by}</div>
-                )}
+                {m.added_by && <div className="small text-muted mt-1">added by {m.added_by}</div>}
               </div>
             </Col>
           ))}
         </Row>
+      )}
+
+      {/* Group showtimes (DB) */}
+      <h4 className="mt-4">Group showtimes</h4>
+      {stLoading ? (
+        <div className="my-3"><Spinner animation="border" /></div>
+      ) : stError ? (
+        <Alert variant="warning">{stError}</Alert>
+      ) : showtimes.length === 0 ? (
+        <p className="text-muted">No showtimes shared yet.</p>
+      ) : (
+        <Card className="mb-4">
+          <ListGroup variant="flush">
+            {showtimes.map((s) => (
+              <ListGroup.Item key={s.id} className="d-flex justify-content-between align-items-center">
+                <div>
+                  <strong>{s.title}</strong>
+                  <div className="small text-muted">
+                    {s.theatre_name} — {s.pretty_time}
+                  </div>
+                  {s.added_by && <div className="small text-muted">added by {s.added_by}</div>}
+                </div>
+              </ListGroup.Item>
+            ))}
+          </ListGroup>
+        </Card>
       )}
 
       <DetailModal

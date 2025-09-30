@@ -10,6 +10,7 @@ import authExtraRoutes from "./routes/authExtra.js";
 import userRoutes from "./routes/user.js";
 import reviewsRouter from './routes/reviews.js';
 import groupContentRouter from "./routes/group_content.js";
+import showtimeRoutes from "./routes/showtimes.js";
 
 
 import pool from "./db.js";
@@ -39,6 +40,7 @@ app.use("/api/user", userRoutes);
 app.use("/api/groups", groupRoutes);
 app.use("/api/group_members", groupMembersRouter);
 app.use("/api/group_content", groupContentRouter);
+app.use("/api/showtimes", showtimeRoutes);
 
 app.get("/api/test", async (_req, res) => {
   try {
