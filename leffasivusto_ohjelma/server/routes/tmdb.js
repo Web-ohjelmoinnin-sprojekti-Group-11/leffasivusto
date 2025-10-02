@@ -4,6 +4,10 @@ import tmdb from "../utils/tmdb.js";
 
 const router = Router();
 
+// ---------------------------------------------------------------------------
+// Yleisreitit (trending, search, discover, title, person)
+// ---------------------------------------------------------------------------
+
 // GET /api/tmdb/trending
 router.get("/trending", async (_req, res) => {
   try {
@@ -27,7 +31,7 @@ router.get("/search", async (req, res) => {
         query: q,
         page,
         include_adult: false,
-        language: "en-US",
+        // language asetetaan utils/tmdb.js:ssä
       },
     });
     res.json(data);
@@ -109,7 +113,6 @@ router.get("/title/:id", async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isFinite(id)) return res.status(400).json({ error: "Bad id" });
 
-  // Apufunktio
   const fetchPack = (type) =>
     Promise.all([
       tmdb.get(`/${type}/${id}`),
@@ -137,9 +140,104 @@ router.get("/title/:id", async (req, res) => {
   }
 });
 
+// ---------------------------------------------------------------------------
+// RANDOM PICKER  /api/tmdb/picker?kw=word1,word2&decade=1990
+// decade = vuosikymmenen aloitusvuosi (esim. 1990 → 1990..1999)
+// ---------------------------------------------------------------------------
 
+// --- UPDATED RANDOM PICKER --------------------------------------------------
+// GET /api/tmdb/picker?kw=word&genre=878&decade=1990
+// - kw      : vapaaehtoinen vapaatekstinen keyword (mapataan TMDB keyword-ID:ksi)
+// - genre   : vapaaehtoinen TMDB genre id (with_genres)
+// - decade  : pakollinen aloitusvuosi (1990 -> 1990..1999)
 
+async function getKeywordId(word) {
+  if (!word) return null;
+  const { data } = await tmdb.get("/search/keyword", { params: { query: word } });
+  return data?.results?.[0]?.id || null;
+}
 
+async function discoverWithFilters({ keywordId, genreId, decadeFrom, decadeTo, page = 1 }) {
+  const params = {
+    include_adult: false,
+    sort_by: "popularity.desc",
+    page,
+    // lisärajauksia, jotta roska vähenee:
+    "vote_count.gte": 50,              // vaadi hieman ääniä
+    with_original_language: "en",      // pitää sisällön länsimaisena (voit poistaa jos haluat laajemman)
+  };
+  if (keywordId) params.with_keywords = String(keywordId);
+  if (genreId)   params.with_genres   = String(genreId);
+  if (decadeFrom) params["primary_release_date.gte"] = `${decadeFrom}-01-01`;
+  if (decadeTo)   params["primary_release_date.lte"] = `${decadeTo}-12-31`;
+
+  const { data } = await tmdb.get("/discover/movie", { params });
+  return data;
+}
+
+function pickRandom(arr) {
+  if (!arr?.length) return null;
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function normalize(movie) {
+  const posterUrl = movie?.poster_path
+    ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
+    : null;
+  return {
+    id: movie.id,
+    title: movie.title || movie.name,
+    overview: movie.overview,
+    releaseDate: movie.release_date || movie.first_air_date,
+    posterUrl,
+    vote: movie.vote_average ?? movie.vote,
+  };
+}
+
+router.get("/picker", async (req, res) => {
+  try {
+    const kw      = (req.query.kw || "").toString().trim();
+    const genreId = req.query.genre ? Number(req.query.genre) : null;
+    const decade  = Number(req.query.decade || "");
+    const decadeFrom = Number.isFinite(decade) ? decade : null;
+    const decadeTo   = Number.isFinite(decade) ? decade + 9 : null;
+
+    if (!kw && !genreId && !decadeFrom) {
+      return res.status(400).json({ error: "Provide at least a keyword, genre or decade." });
+    }
+
+    // 1) mapataan keyword ID:ksi (jos annettu)
+    const keywordId = kw ? await getKeywordId(kw) : null;
+
+    // 2) Yritetään parhaasta suppeimpaan:
+    //    [kw+genre+decade] -> [kw+decade] -> [genre+decade] -> [decade] -> [kw]
+    const attempts = [
+      { keywordId, genreId, decadeFrom, decadeTo },
+      { keywordId, genreId: null, decadeFrom, decadeTo },
+      { keywordId: null, genreId, decadeFrom, decadeTo },
+      { keywordId: null, genreId: null, decadeFrom, decadeTo },
+      { keywordId, genreId: null, decadeFrom: null, decadeTo: null },
+    ].filter(Boolean);
+
+    let chosen = null;
+    for (const a of attempts) {
+      const first = await discoverWithFilters({ ...a, page: 1 });
+      if (!first?.total_results) continue;
+
+      const maxPages = Math.min(first.total_pages || 1, 10);
+      const randomPage = Math.max(1, Math.floor(Math.random() * maxPages) + 1);
+      const pageData = randomPage === 1 ? first : await discoverWithFilters({ ...a, page: randomPage });
+      chosen = pickRandom(pageData.results);
+      if (chosen) break;
+    }
+
+    if (!chosen) return res.status(404).json({ error: "No movie found matching your criteria." });
+    return res.json(normalize(chosen));
+  } catch (err) {
+    console.error("TMDB picker error:", err?.response?.data || err.message);
+    return res.status(502).json({ error: "Picker failed" });
+  }
+});
 
 
 export default router;
