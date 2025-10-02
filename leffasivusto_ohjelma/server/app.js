@@ -3,14 +3,14 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 
 import groupRoutes from "./routes/groups.js";
-import groupMembersRouter from "./routes/group_members.js";
+import groupMembersRouter from "./routes/groupMembers.js";
 import authRoutes from "./routes/auth.js";
 import tmdbRoutes from "./routes/tmdb.js";
 import authExtraRoutes from "./routes/authExtra.js";
 import userRoutes from "./routes/user.js";
 import reviewsRouter from './routes/reviews.js';
-import groupContentRouter from "./routes/group_content.js";
-import showtimeRoutes from "./routes/showtimes.js";
+import groupContentRouter from "./routes/groupContent.js";
+import groupShowtimesRouter from "./routes/groupShowtimes.js";
 import pickerRouter from "./routes/pickerRouter.js";
 
 
@@ -41,7 +41,7 @@ app.use("/api/user", userRoutes);
 app.use("/api/groups", groupRoutes);
 app.use("/api/group_members", groupMembersRouter);
 app.use("/api/group_content", groupContentRouter);
-app.use("/api/showtimes", showtimeRoutes);
+app.use("/api/showtimes", groupShowtimesRouter);
 
 //extra
 app.use("/api/picker", pickerRouter);

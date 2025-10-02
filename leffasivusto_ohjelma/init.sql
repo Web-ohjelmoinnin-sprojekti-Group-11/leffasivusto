@@ -316,3 +316,8 @@ END$$;
 
 CREATE INDEX IF NOT EXISTS idx_showtimes_group_time ON public.showtimes(group_id, showtime);
 
+
+-- User tauluun, jotta voi vaihtaa salasanaa
+
+ALTER TABLE users
+  ADD COLUMN updated_at timestamptz NOT NULL DEFAULT NOW();

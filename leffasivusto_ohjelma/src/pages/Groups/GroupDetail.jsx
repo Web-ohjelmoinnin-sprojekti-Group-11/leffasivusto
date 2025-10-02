@@ -1,238 +1,37 @@
 // src/pages/Groups/GroupDetail.jsx
-import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Button, ListGroup, Alert, Spinner, Row, Col, Card } from "react-bootstrap";
-import api from "../../services/api";
-import { getToken } from "../../services/token";
+import { Button, Alert, Spinner, Row, Col } from "react-bootstrap";
+
+import useGroupBasics from "../../hooks/useGroupBasics";
+import useGroupLibrary from "../../hooks/useGroupLibrary";
+import useGroupShowtimes from "../../hooks/useGroupShowtimes";
 
 import MovieCard from "../../components/movies/MovieCard";
 import DetailModal from "../../components/movies/DetailModal";
+import JoinRequests from "../../components/group/JoinRequests";
+import MemberList from "../../components/group/MemberList";
+import GroupShowtimes from "../../components/group/GroupShowtimes";
+
+import { useState } from "react";
 
 export default function GroupDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const [group, setGroup] = useState(null);
-  const [members, setMembers] = useState([]);
-  const [membership, setMembership] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const { state, actions } = useGroupBasics(id, navigate);
+  const { group, members, membership, loading, error } = state;
+  const { removeMember, accept, reject, deleteGroup, leaveGroup } = actions;
 
-  // movies
-  const [libLoading, setLibLoading] = useState(true);
-  const [libError, setLibError] = useState(null);
-  const [libMovies, setLibMovies] = useState([]);
-
-  // showtimes (shared to this group)
-  const [stLoading, setStLoading] = useState(true);
-  const [stError, setStError] = useState(null);
-  const [showtimes, setShowtimes] = useState([]);
+  const { libLoading, libError, libMovies, loadLibrary } = useGroupLibrary(id);
+  const { stLoading, stError, showtimes } = useGroupShowtimes(id);
 
   // modal
   const [showModal, setShowModal] = useState(false);
   const [modalItem, setModalItem] = useState(null);
 
-  const auth = useMemo(
-    () => ({ headers: { Authorization: `Bearer ${getToken()}` } }),
-    []
-  );
-
-  const fmtTime = (iso) => {
-    try {
-      const d = new Date(iso);
-      return d.toLocaleString("fi-FI", {
-        weekday: "short",
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    } catch {
-      return iso || "";
-    }
-  };
-
-  // basics
-  useEffect(() => {
-    (async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const g = await api.get(`/groups/${id}`, auth);
-        setGroup(g.data.group);
-        setMembership(g.data.membership || null);
-
-        try {
-          const m = await api.get(`/group_members/${id}`, auth);
-          setMembers(m.data.members || []);
-        } catch {
-          setMembers([]);
-        }
-      } catch (err) {
-        if (err?.response?.status === 403) {
-          navigate("/groups");
-          return;
-        }
-        console.error(err);
-        setError("Failed to load group");
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [id, navigate, auth]);
-
-  // movies
-  const loadLibrary = async () => {
-    try {
-      setLibLoading(true);
-      setLibError(null);
-      setLibMovies([]);
-
-      const gc = await api.get(`/group_content/${id}/movies`, auth);
-      const items = gc.data?.movies || [];
-
-      const results = await Promise.all(
-        items.map(async (x) => {
-          const tmdbId = Number(x.movie_id);
-          let payload = null;
-          try {
-            const r1 = await api.get(`/tmdb/title/${tmdbId}`);
-            payload = r1.data || null;
-          } catch (e1) {
-            if (e1?.response?.status === 404) {
-              try {
-                const r2 = await api.get(`/tmdb/tv/${tmdbId}`);
-                payload = r2.data || null;
-              } catch {
-                payload = null;
-              }
-            }
-          }
-          if (!payload) {
-            return {
-              id: tmdbId,
-              title: `#${tmdbId}`,
-              name: null,
-              poster: null,
-              overview: "",
-              vote_average: null,
-              releaseDate: "",
-              added_by: x.added_by,
-              mediaType: "movie",
-            };
-          }
-          const d = payload.detail || payload;
-          const mediaType = d.title ? "movie" : "tv";
-          return {
-            id: tmdbId,
-            title: d.title || d.name || `#${tmdbId}`,
-            name: d.name,
-            poster: d.poster_path ? `https://image.tmdb.org/t/p/w500${d.poster_path}` : null,
-            overview: d.overview || "",
-            vote_average: typeof d.vote_average === "number" ? d.vote_average : null,
-            releaseDate: d.release_date || d.first_air_date || "",
-            added_by: x.added_by,
-            mediaType,
-          };
-        })
-      );
-      setLibMovies(results);
-    } catch (err) {
-      console.error(err);
-      setLibError("Failed to load group movies");
-    } finally {
-      setLibLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadLibrary();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
-
-  // showtimes for this group
-  const loadShowtimes = async () => {
-    try {
-      setStLoading(true);
-      setStError(null);
-      const res = await api.get(`/showtimes/${id}`, auth);
-      const list = (res.data?.showtimes || [])
-        .map((s) => ({
-          ...s,
-          pretty_time: s.pretty_time || fmtTime(s.showtime || s.created_at),
-        }))
-        .sort((a, b) => new Date(a.showtime) - new Date(b.showtime));
-      setShowtimes(list);
-    } catch (e) {
-      console.error(e);
-      setStError("Failed to load group showtimes");
-    } finally {
-      setStLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadShowtimes();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
-
-  // member actions
   const isOwner = membership?.role === "admin";
-
-  const removeMember = async (userId) => {
-    try {
-      await api.delete(`/group_members/${id}/members/${userId}`, auth);
-      setMembers((prev) => prev.filter((m) => m.user_id !== userId));
-    } catch (err) {
-      console.error("Failed to remove member:", err);
-      setError("Failed to remove member");
-    }
-  };
-
-  const accept = async (userId) => {
-    try {
-      await api.post(`/group_members/${id}/requests/${userId}`, { action: "accept" }, auth);
-      setMembers((prev) => prev.map((m) => (m.user_id === userId ? { ...m, role: "member" } : m)));
-    } catch (err) {
-      console.error("Accept failed:", err);
-      setError("Failed to accept request");
-    }
-  };
-
-  const reject = async (userId) => {
-    try {
-      await api.post(`/group_members/${id}/requests/${userId}`, { action: "reject" }, auth);
-      setMembers((prev) => prev.filter((m) => !(m.user_id === userId && m.role === "pending")));
-    } catch (err) {
-      console.error("Reject failed:", err);
-      setError("Failed to reject request");
-    }
-  };
-
-  const deleteGroup = async () => {
-    if (!group) return;
-    if (!window.confirm(`Delete group "${group.group_name}"? This cannot be undone.`)) return;
-    try {
-      await api.delete(`/groups/${id}`, auth);
-      navigate("/groups");
-    } catch (err) {
-      console.error("Group delete error:", err);
-      setError("Failed to delete group");
-    }
-  };
-
-  const leaveGroup = async () => {
-    if (!window.confirm("Leave this group?")) return;
-    try {
-      await api.delete(`/group_members/${id}/leave`, auth);
-      navigate("/groups");
-    } catch (err) {
-      console.error("Leave group error:", err);
-      setError(err?.response?.data?.error || "Failed to leave group");
-    }
-  };
+  const pending = members.filter((m) => m.role === "pending");
+  const normalMembers = members.filter((m) => m.role !== "pending");
 
   const openModal = (m) => {
     setModalItem({
@@ -247,9 +46,6 @@ export default function GroupDetail() {
   if (error) return <Alert variant="danger" className="mt-3">{error}</Alert>;
   if (loading) return <div className="my-4"><Spinner animation="border" /></div>;
   if (!group) return <p>Not found.</p>;
-
-  const pending = members.filter((m) => m.role === "pending");
-  const normalMembers = members.filter((m) => m.role !== "pending");
 
   return (
     <div>
@@ -267,44 +63,13 @@ export default function GroupDetail() {
       {isOwner && (
         <>
           <h4 className="mt-3">Join requests</h4>
-          {pending.length === 0 ? (
-            <p className="text-muted">No pending requests.</p>
-          ) : (
-            <ListGroup className="mb-4">
-              {pending.map((r) => (
-                <ListGroup.Item key={r.user_id} className="d-flex justify-content-between align-items-center">
-                  <span>{r.username || r.email || r.user_id}</span>
-                  <div>
-                    <Button size="sm" variant="success" className="me-2" onClick={() => accept(r.user_id)}>
-                      Accept
-                    </Button>
-                    <Button size="sm" variant="outline-danger" onClick={() => reject(r.user_id)}>
-                      Reject
-                    </Button>
-                  </div>
-                </ListGroup.Item>
-              ))}
-            </ListGroup>
-          )}
+          <JoinRequests pending={pending} onAccept={accept} onReject={reject} />
         </>
       )}
 
       {/* Members */}
       <h4 className="mt-2">Members</h4>
-      {normalMembers.length === 0 ? (
-        <p className="text-muted">No members.</p>
-      ) : (
-        <ListGroup className="mb-4">
-          {normalMembers.map((m) => (
-            <ListGroup.Item key={m.user_id} className="d-flex justify-content-between align-items-center">
-              <span>{m.username || m.email || m.user_id} ({m.role})</span>
-              {isOwner && m.role !== "admin" && (
-                <Button variant="danger" size="sm" onClick={() => removeMember(m.user_id)}>Remove</Button>
-              )}
-            </ListGroup.Item>
-          ))}
-        </ListGroup>
-      )}
+      <MemberList members={normalMembers} isOwner={isOwner} onRemove={removeMember} />
 
       {/* Group movies */}
       <div className="d-flex align-items-center justify-content-between">
@@ -333,29 +98,7 @@ export default function GroupDetail() {
 
       {/* Group showtimes (DB) */}
       <h4 className="mt-4">Group showtimes</h4>
-      {stLoading ? (
-        <div className="my-3"><Spinner animation="border" /></div>
-      ) : stError ? (
-        <Alert variant="warning">{stError}</Alert>
-      ) : showtimes.length === 0 ? (
-        <p className="text-muted">No showtimes shared yet.</p>
-      ) : (
-        <Card className="mb-4">
-          <ListGroup variant="flush">
-            {showtimes.map((s) => (
-              <ListGroup.Item key={s.id} className="d-flex justify-content-between align-items-center">
-                <div>
-                  <strong>{s.title}</strong>
-                  <div className="small text-muted">
-                    {s.theatre_name} — {s.pretty_time}
-                  </div>
-                  {s.added_by && <div className="small text-muted">added by {s.added_by}</div>}
-                </div>
-              </ListGroup.Item>
-            ))}
-          </ListGroup>
-        </Card>
-      )}
+      <GroupShowtimes loading={stLoading} error={stError} showtimes={showtimes} />
 
       <DetailModal
         show={showModal}
