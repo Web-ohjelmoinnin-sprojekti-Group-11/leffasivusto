@@ -1,0 +1,88 @@
+/*
+DROP TABLE IF EXISTS group_content CASCADE;
+DROP TABLE IF EXISTS favorite_list_movies CASCADE;
+DROP TABLE IF EXISTS favorite_lists CASCADE;
+DROP TABLE IF EXISTS showtimes CASCADE;
+DROP TABLE IF EXISTS reviews CASCADE;
+DROP TABLE IF EXISTS group_members CASCADE;
+DROP TABLE IF EXISTS groups CASCADE;
+DROP TABLE IF EXISTS watch_later CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
+
+CREATE TABLE users (
+    user_id SERIAL PRIMARY KEY,
+    email TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE groups (
+    group_id SERIAL PRIMARY KEY,
+    owner_id INT REFERENCES users(user_id) ON DELETE CASCADE,
+    group_name TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE group_members (
+    user_id INT REFERENCES users(user_id) ON DELETE CASCADE,
+    group_id INT REFERENCES groups(group_id) ON DELETE CASCADE,
+    role TEXT CHECK (role IN ('member','admin','pending')) DEFAULT 'member' NOT NULL,
+    PRIMARY KEY (user_id, group_id)
+);
+
+CREATE TABLE reviews (
+    review_id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    movie_id INT NOT NULL,
+    rating SMALLINT NOT NULL CHECK (rating BETWEEN 1 AND 5),
+    text TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT reviews_user_movie_uniq UNIQUE (user_id, movie_id)
+);
+
+CREATE INDEX idx_reviews_movie_id   ON reviews(movie_id);
+CREATE INDEX idx_reviews_created_at ON reviews(created_at DESC);
+
+CREATE TABLE showtimes (
+    id SERIAL PRIMARY KEY,
+    movie_id INT NOT NULL,
+    title TEXT NOT NULL,
+    theatre_name TEXT NOT NULL,
+    showtime TIMESTAMPTZ NOT NULL,
+    group_id INT REFERENCES groups(group_id) ON DELETE CASCADE,
+    user_id INT REFERENCES users(user_id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_showtimes_group_time ON showtimes(group_id, showtime);
+
+CREATE TABLE favorite_lists (
+    favorite_list_id SERIAL PRIMARY KEY,
+    user_id INT REFERENCES users(user_id) ON DELETE CASCADE,
+    name TEXT NOT NULL
+);
+
+CREATE TABLE favorite_list_movies (
+    favorite_list_id INT REFERENCES favorite_lists(favorite_list_id) ON DELETE CASCADE,
+    movie_id TEXT NOT NULL,
+    PRIMARY KEY (favorite_list_id, movie_id)
+);
+
+CREATE TABLE watch_later (
+    id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    movie_id INT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(user_id, movie_id)
+);
+
+CREATE TABLE group_content (
+    content_id SERIAL PRIMARY KEY,
+    group_id INT REFERENCES groups(group_id) ON DELETE CASCADE,
+    user_id INT REFERENCES users(user_id) ON DELETE CASCADE,
+    review_id INT REFERENCES reviews(review_id) ON DELETE SET NULL,
+    text TEXT,
+    role TEXT
+);
+*/

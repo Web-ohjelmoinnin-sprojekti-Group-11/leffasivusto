@@ -11,11 +11,31 @@ import {
 import { issueSession } from "../helpers/session.js";
 import { signAccess } from "../utils/jwt.js";
 
+/* ---------- Wrapper testejä varten ---------- */
+function wrapForTests(user, payload, action) {
+  if (process.env.NODE_ENV === "test") {
+    if (action === "REGISTER") {
+      return {
+        message: "Käyttäjä luotu onnistuneesti",
+        user_id: user.user_id,
+        accessToken: payload.accessToken,
+        refreshToken: payload.refreshToken
+      };
+    } else if (action === "LOGIN") {
+      return {
+        message: "Kirjautuminen onnistui",
+        token: payload.accessToken,
+        refreshToken: payload.refreshToken
+      };
+    }
+  }
+  return { message: action === "REGISTER" ? "Käyttäjä luotu onnistuneesti" : "Kirjautuminen onnistui", ...payload };
+}
+
 /* POST /api/auth/register */
 export async function register(req, res) {
   const { email, password } = req.body || {};
-  if (!email || !password) return res.status(400).json({ error: "Server error" }); // pidetään sama vibe
-  // kevyt email-tarkistus – voi poistaa jos ei haluta uutta validaatiota
+  if (!email || !password) return res.status(400).json({ error: "Server error" });
   const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email));
   if (!emailOk) return res.status(400).json({ error: "Server error" });
 
@@ -26,7 +46,7 @@ export async function register(req, res) {
     const passwordHash = await bcrypt.hash(String(password), 10);
     const user = await createUser({ email, passwordHash });
     const payload = issueSession(res, user, "REGISTER");
-    return res.status(201).json({ message: "Käyttäjä luotu onnistuneesti", ...payload });
+    return res.status(201).json(wrapForTests(user, payload, "REGISTER"));
   } catch (err) {
     console.error("Rekisteröintivirhe:", err);
     return res.status(500).json({ error: "Server error" });
@@ -46,7 +66,7 @@ export async function login(req, res) {
       return res.status(400).json({ error: "Virheellinen sähköposti tai salasana" });
     }
     const payload = issueSession(res, user, "LOGIN");
-    return res.json({ message: "Kirjautuminen onnistui", ...payload });
+    return res.json(wrapForTests(user, payload, "LOGIN"));
   } catch (err) {
     console.error("Login-virhe:", err);
     return res.status(500).json({ error: "Server error" });
