@@ -323,3 +323,33 @@ CREATE INDEX IF NOT EXISTS idx_showtimes_group_time ON public.showtimes(group_id
 
 ALTER TABLE users
   ADD COLUMN updated_at timestamptz NOT NULL DEFAULT NOW();
+
+ -- Lisä column favoriteen, linkin lähetystä varten
+ DO $$
+BEGIN
+IF NOT EXISTS (
+SELECT 1 FROM information_schema.tables
+WHERE table_schema = 'public' AND table_name = 'favorite_lists'
+) THEN
+CREATE TABLE public.favorite_lists (
+favorite_list_id SERIAL PRIMARY KEY,
+user_id INT REFERENCES users(user_id) ON DELETE CASCADE,
+name TEXT NOT NULL,
+created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- Lisäsin tämän, jos puuttui
+);
+END IF;
+END$$;
+
+-- Lisää share_token-sarake vain jos puuttuu (UNIQUE, nullable)
+DO $$
+BEGIN
+IF NOT EXISTS (
+SELECT 1 FROM information_schema.columns
+WHERE table_schema = 'public'
+AND table_name = 'favorite_lists'
+AND column_name = 'share_token'
+) THEN
+ALTER TABLE public.favorite_lists
+ADD COLUMN share_token TEXT UNIQUE;
+END IF;
+END$$; 
