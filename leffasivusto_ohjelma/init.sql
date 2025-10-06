@@ -324,32 +324,143 @@ CREATE INDEX IF NOT EXISTS idx_showtimes_group_time ON public.showtimes(group_id
 ALTER TABLE users
   ADD COLUMN updated_at timestamptz NOT NULL DEFAULT NOW();
 
+ 
+ 
  -- Lisä column favoriteen, linkin lähetystä varten
- DO $$
-BEGIN
-IF NOT EXISTS (
-SELECT 1 FROM information_schema.tables
-WHERE table_schema = 'public' AND table_name = 'favorite_lists'
-) THEN
-CREATE TABLE public.favorite_lists (
-favorite_list_id SERIAL PRIMARY KEY,
-user_id INT REFERENCES users(user_id) ON DELETE CASCADE,
-name TEXT NOT NULL,
-created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- Lisäsin tämän, jos puuttui
-);
-END IF;
-END$$;
 
--- Lisää share_token-sarake vain jos puuttuu (UNIQUE, nullable)
+ -- ============================================================
+-- init.sql — Favorites + Share token + Watch Later (idempotentti)
+-- ============================================================
+
+ROLLBACK;
+
+BEGIN;
+
+-- 0) pgcrypto, jotta gen_random_bytes() on käytettävissä (jos käytätte PG:ssä token-generointia)
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+-- 1) TAULUT JA SARAKKEET
+-- ------------------------------------------------------------
+
+-- favorite_lists (luodaan minimi-sarakkeilla; puuttuvat lisätään alla)
+CREATE TABLE IF NOT EXISTS public.favorite_lists (
+  favorite_list_id SERIAL PRIMARY KEY,
+  user_id INT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+  name   TEXT NOT NULL
+);
+
+-- lisää/korjaa created_at
 DO $$
 BEGIN
-IF NOT EXISTS (
-SELECT 1 FROM information_schema.columns
-WHERE table_schema = 'public'
-AND table_name = 'favorite_lists'
-AND column_name = 'share_token'
-) THEN
-ALTER TABLE public.favorite_lists
-ADD COLUMN share_token TEXT UNIQUE;
-END IF;
-END$$; 
+  IF NOT EXISTS (
+    SELECT 1
+      FROM information_schema.columns
+     WHERE table_schema='public'
+       AND table_name='favorite_lists'
+       AND column_name='created_at'
+  ) THEN
+    ALTER TABLE public.favorite_lists
+      ADD COLUMN created_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+  ELSE
+    -- varmista tyyppi ja oletus
+    ALTER TABLE public.favorite_lists
+      ALTER COLUMN created_at TYPE TIMESTAMPTZ USING created_at::timestamptz,
+      ALTER COLUMN created_at SET DEFAULT NOW();
+  END IF;
+END$$;
+
+-- lisää share_token jos puuttuu (uniikkius lisätään osittaisella indeksillä alempana)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+      FROM information_schema.columns
+     WHERE table_schema='public'
+       AND table_name='favorite_lists'
+       AND column_name='share_token'
+  ) THEN
+    ALTER TABLE public.favorite_lists
+      ADD COLUMN share_token TEXT;
+  END IF;
+END$$;
+
+-- favorite_list_movies
+CREATE TABLE IF NOT EXISTS public.favorite_list_movies (
+  favorite_list_id INT  NOT NULL REFERENCES favorite_lists(favorite_list_id) ON DELETE CASCADE,
+  movie_id         TEXT NOT NULL,
+  PRIMARY KEY (favorite_list_id, movie_id)
+);
+
+-- watch_later
+CREATE TABLE IF NOT EXISTS public.watch_later (
+  id         SERIAL PRIMARY KEY,
+  user_id    INT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+  movie_id   INT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (user_id, movie_id)
+);
+
+-- 2) DUPLIKAATTIEN SIIVOUS: vain yksi "Favorites" per käyttäjä
+-- ------------------------------------------------------------
+WITH dups AS (
+  SELECT user_id,
+         MIN(favorite_list_id) AS keep_id,
+         ARRAY_AGG(favorite_list_id) AS all_ids
+  FROM favorite_lists
+  WHERE name = 'Favorites'
+  GROUP BY user_id
+  HAVING COUNT(*) > 1
+),
+moved AS (
+  INSERT INTO favorite_list_movies (favorite_list_id, movie_id)
+  SELECT d.keep_id, flm.movie_id
+  FROM dups d
+  JOIN favorite_list_movies flm ON flm.favorite_list_id = ANY(d.all_ids)
+  ON CONFLICT DO NOTHING
+  RETURNING 1
+)
+DELETE FROM favorite_lists fl
+USING dups d
+WHERE fl.user_id = d.user_id
+  AND fl.favorite_list_id <> d.keep_id
+  AND fl.favorite_list_id = ANY(d.all_ids);
+
+-- 3) UNIIKKIUSRajoitteet ja indeksit
+-- ------------------------------------------------------------
+
+-- a) Yksi rivi per (user_id, name)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+      FROM pg_constraint
+     WHERE conrelid = 'favorite_lists'::regclass
+       AND conname  = 'favorite_lists_user_name_key'
+       AND contype  = 'u'
+  ) THEN
+    ALTER TABLE favorite_lists
+      ADD CONSTRAINT favorite_lists_user_name_key UNIQUE (user_id, name);
+  END IF;
+END$$;
+
+-- b) share_token on uniikki, mutta vain kun se EI OLE NULL
+CREATE UNIQUE INDEX IF NOT EXISTS idx_favorite_lists_share_token
+  ON favorite_lists(share_token)
+  WHERE share_token IS NOT NULL;
+
+-- c) hyödyllisiä indeksejä
+CREATE INDEX IF NOT EXISTS idx_favorite_lists_user          ON favorite_lists(user_id);
+CREATE INDEX IF NOT EXISTS idx_favorite_list_movies_list    ON favorite_list_movies(favorite_list_id);
+CREATE INDEX IF NOT EXISTS idx_watch_later_user             ON watch_later(user_id);
+
+-- 4) (Kertaluontoinen siivous) nollaa epäkelvot tokenit
+UPDATE favorite_lists
+   SET share_token = NULL
+ WHERE share_token IS NOT NULL
+   AND (length(share_token) < 20 OR length(share_token) > 128);
+
+COMMIT;
+
+-- ============================================================
+-- Loppu
+-- ============================================================

@@ -1,4 +1,3 @@
-// server/models/authModel.js
 import pool from "../db.js";
 
 /* ---------- Yhteisiä apuja ---------- */
@@ -12,7 +11,7 @@ export async function isEmailTaken(email, exceptUserId) {
   return rows.length > 0;
 }
 
-// Päivitä email + updated_at (namea ei vaadita skeemaan)
+// Päivitä email + updated_at
 export async function updateProfileFields(userId, { email }) {
   if (typeof email === "undefined") return null;
 
@@ -83,10 +82,109 @@ export async function getUserPublicById(userId) {
   return rows[0] || null;
 }
 
+/** Yksinkertainen poisto (vain users) */
 export async function deleteUserById(userId) {
   const { rowCount } = await pool.query(
     "DELETE FROM users WHERE user_id = $1",
     [userId]
   );
   return rowCount;
+}
+
+/* ---------- Syväpoisto teidän skeemalle ---------- */
+
+async function safeExec(client, sql, params) {
+  try {
+    await client.query(sql, params);
+  } catch (e) {
+    // 42P01=undefined_table, 42703=undefined_column (sallitaan devissä)
+    if (e?.code === "42P01" || e?.code === "42703") {
+      console.warn("safeExec skip:", e.code, "-", e.message);
+      return;
+    }
+    throw e;
+  }
+}
+
+/**
+ * Poistaa KAIKEN käyttäjään liittyvän:
+ * - Omistamat ryhmät ja niiden sisällöt (group_content, group_members, showtimes -> groups)
+ * - Jäsenyydet muissa ryhmissä
+ * - Käyttäjän luomat sisällöt muissa ryhmissä (group_content, showtimes)
+ * - Arvostelut (reviews)
+ * - Watch later (watch_later)
+ * - Suosikkilistat (favorite_list_movies -> favorite_lists)
+ * - Lopuksi itse käyttäjä
+ */
+export async function deleteUserDeep(userId) {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    /* 1) Ryhmät joita käyttäjä OMISTAA */
+    // Ryhmien sisältö (group_content)
+    await safeExec(
+      client,
+      `DELETE FROM group_content gc
+         USING groups g
+        WHERE g.group_id = gc.group_id
+          AND g.owner_id = $1`,
+      [userId]
+    );
+    // Ryhmien näytösjaot (showtimes)
+    await safeExec(
+      client,
+      `DELETE FROM showtimes s
+         USING groups g
+        WHERE g.group_id = s.group_id
+          AND g.owner_id = $1`,
+      [userId]
+    );
+    // Ryhmien jäsenyydet (group_members)
+    await safeExec(
+      client,
+      `DELETE FROM group_members gm
+         USING groups g
+        WHERE g.group_id = gm.group_id
+          AND g.owner_id = $1`,
+      [userId]
+    );
+    // Itse ryhmät
+    await safeExec(client, `DELETE FROM groups WHERE owner_id = $1`, [userId]);
+
+    /* 2) Jäsenyydet muissa ryhmissä */
+    await safeExec(client, `DELETE FROM group_members WHERE user_id = $1`, [userId]);
+
+    /* 3) Käyttäjän sisältö muissa ryhmissä */
+    await safeExec(client, `DELETE FROM group_content WHERE user_id = $1`, [userId]);
+    await safeExec(client, `DELETE FROM showtimes     WHERE user_id = $1`, [userId]);
+
+    /* 4) Arvostelut */
+    await safeExec(client, `DELETE FROM reviews WHERE user_id = $1`, [userId]);
+
+    /* 5) Watch later */
+    await safeExec(client, `DELETE FROM watch_later WHERE user_id = $1`, [userId]);
+
+    /* 6) Suosikkilistat (ensin rivit favorite_list_movies, sitten listat) */
+    await safeExec(
+      client,
+      `DELETE FROM favorite_list_movies flm
+         USING favorite_lists fl
+        WHERE fl.favorite_list_id = flm.favorite_list_id
+          AND fl.user_id = $1`,
+      [userId]
+    );
+    await safeExec(client, `DELETE FROM favorite_lists WHERE user_id = $1`, [userId]);
+
+    /* 7) Lopuksi käyttäjä */
+    const result = await client.query(`DELETE FROM users WHERE user_id = $1`, [userId]);
+
+    await client.query("COMMIT");
+    return result.rowCount; // 1 jos käyttäjä poistui
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
 }

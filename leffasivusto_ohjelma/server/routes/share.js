@@ -1,9 +1,8 @@
-import express from 'express'
-import { getFavoritesByTokenCtrl } from '../controllers/userController.js'
+import express from "express";
+import { viewSharedFavorites } from "../controllers/favoriteShareController.js";
 
-const router = express.Router()
+const router = express.Router();
+// Public: ei authia
+router.get("/:token", viewSharedFavorites);
 
-// Public: no auth middleware here
-router.get('/:token', getFavoritesByTokenCtrl)
-
-export default router
+export default router;

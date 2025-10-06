@@ -1,4 +1,3 @@
-// src/services/profileService.js
 import api from './api'
 
 /** Centralized request with normalized English errors. */
@@ -7,7 +6,6 @@ async function request(method, url, data) {
     const res = await api({ method, url, data })
     return res.data
   } catch (e) {
-    // Attach server response details when available to help debugging in UI
     const serverMsg = e?.response?.data?.message || e?.response?.data?.error
     const status = e?.response?.status
     const msg = serverMsg || e?.message || 'Unknown error'
@@ -27,9 +25,6 @@ export const profileApi = {
   // User data
   getFavorites:   async () => {
     const data = await request('get', '/user/favorites')
-    // normalize: some server responses return { favorites: [...] } while others
-    // may return the array directly. Always return an array to keep callers
-    // (useFavorites hook) simple.
     return Array.isArray(data) ? data : (data?.favorites ?? [])
   },
   addFavorite:    ({ movieId, ...rest }) => request('post',   '/user/favorites', { movieId, ...rest }),
@@ -40,9 +35,13 @@ export const profileApi = {
   getWatchLater:  () => request('get',    '/user/watch-later'),
   addWatchLater:  ({ movieId, ...rest }) => request('post',   '/user/watch-later', { movieId, ...rest }),
   removeWatchLater: (movieId) => request('delete', `/user/watch-later/${movieId}`),
+
   // Shareable favorites
   getShareToken: () => request('get', '/user/favorites/share'),
   manageShareToken: (body) => request('post', '/user/favorites/share', body),
+
+  // Account deletion (deep delete on server)
+  deleteAccount:  () => request('delete', '/auth/delete'),
 }
 
 export default profileApi

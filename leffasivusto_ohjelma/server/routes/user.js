@@ -1,4 +1,3 @@
-// server/routes/user.js
 import express from "express";
 import { verifyJWT } from "../middleware/auth.js";
 
@@ -6,8 +5,6 @@ import {
   getFavoritesCtrl,
   addFavoriteCtrl,
   removeFavoriteCtrl,
-  getShareTokenCtrl,
-  manageShareTokenCtrl,
   listMyReviewsCtrl,
   deleteMyReviewCtrl,
   listHistoryCtrl,
@@ -15,6 +12,11 @@ import {
   addWatchLaterCtrl,
   removeWatchLaterCtrl,
 } from "../controllers/userController.js";
+
+import {
+  getShare as getShareTokenCtrl,
+  manageShare as manageShareTokenCtrl,
+} from "../controllers/favoriteShareController.js";
 
 const router = express.Router();
 
@@ -25,9 +27,10 @@ router.use(verifyJWT);
 router.get("/favorites", getFavoritesCtrl);
 router.post("/favorites", addFavoriteCtrl);
 router.delete("/favorites/:movieId", removeFavoriteCtrl);
-// share token management
-router.get('/favorites/share', getShareTokenCtrl);
-router.post('/favorites/share', manageShareTokenCtrl);
+
+/* Favorites share (idempotentti toteutus) */
+router.get("/favorites/share", getShareTokenCtrl);
+router.post("/favorites/share", manageShareTokenCtrl);
 
 /* Reviews */
 router.get("/reviews", listMyReviewsCtrl);
