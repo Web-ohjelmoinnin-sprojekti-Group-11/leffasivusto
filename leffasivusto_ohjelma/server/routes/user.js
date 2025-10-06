@@ -6,6 +6,8 @@ import {
   getFavoritesCtrl,
   addFavoriteCtrl,
   removeFavoriteCtrl,
+  getShareTokenCtrl,
+  manageShareTokenCtrl,
   listMyReviewsCtrl,
   deleteMyReviewCtrl,
   listHistoryCtrl,
@@ -23,6 +25,9 @@ router.use(verifyJWT);
 router.get("/favorites", getFavoritesCtrl);
 router.post("/favorites", addFavoriteCtrl);
 router.delete("/favorites/:movieId", removeFavoriteCtrl);
+// share token management
+router.get('/favorites/share', getShareTokenCtrl);
+router.post('/favorites/share', manageShareTokenCtrl);
 
 /* Reviews */
 router.get("/reviews", listMyReviewsCtrl);

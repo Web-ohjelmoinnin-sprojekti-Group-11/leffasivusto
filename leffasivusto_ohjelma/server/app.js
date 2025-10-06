@@ -12,6 +12,7 @@ import reviewsRouter from './routes/reviews.js';
 import groupContentRouter from "./routes/groupContent.js";
 import groupShowtimesRouter from "./routes/groupShowtimes.js";
 import pickerRouter from "./routes/pickerRouter.js";
+import shareRouter from "./routes/share.js";
 
 import pool from "./db.js";
 
@@ -42,6 +43,8 @@ app.use("/api/group_members", groupMembersRouter);
 app.use("/api/group_content", groupContentRouter);
 app.use("/api/showtimes", groupShowtimesRouter);
 app.use("/api/picker", pickerRouter);
+// Public share route
+app.use('/api/share', shareRouter);
 
 // Healthcheck
 app.get("/api/test", async (_req, res) => {

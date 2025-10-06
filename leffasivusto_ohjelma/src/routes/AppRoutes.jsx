@@ -4,6 +4,7 @@ import Movies from "../pages/Movies.jsx";
 import NotFound from "../pages/NotFound.jsx";
 import Profile from "../pages/Profile.jsx";
 import RequireAuth from "./RequireAuth.jsx";
+import SharedFavorites from "../pages/SharedFavorites.jsx";
 
 import CreateGroup from "../pages/Groups/CreateGroup.jsx";
 import GroupList from "../pages/Groups/GroupList.jsx";
@@ -50,6 +51,8 @@ export default function AppRoutes() {
           </RequireAuth>
         }
       />
+      {/* Public shared favorites */}
+      <Route path="/share/:token" element={<SharedFavorites />} />
 
       <Route path="/404" element={<NotFound />} />
       <Route path="*" element={<Navigate to="/404" replace />} />
