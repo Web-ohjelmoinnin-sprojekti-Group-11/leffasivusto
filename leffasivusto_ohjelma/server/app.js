@@ -6,7 +6,7 @@ import groupRoutes from "./routes/groups.js";
 import groupMembersRouter from "./routes/groupMembers.js";
 import authRoutes from "./routes/auth.js";
 import tmdbRoutes from "./routes/tmdb.js";
-import authExtraRoutes from "./routes/authExtra.js";
+import authExtraRouter from "./routes/authExtra.js";
 import userRoutes from "./routes/user.js";
 import reviewsRouter from './routes/reviews.js';
 import groupContentRouter from "./routes/groupContent.js";
@@ -31,7 +31,7 @@ app.use(cookieParser());
 
 // Auth routes – erotettu testien kannalta selkeiksi
 app.use("/api/auth", authRoutes);          // /register, /login, /logout, /delete
-app.use("/api/auth/extra", authExtraRoutes); // /update, /change-password
+app.use("/api/auth", authExtraRouter);    // /update, /change-password
 
 // Muu API
 app.use("/api/tmdb", tmdbRoutes);

@@ -1,13 +1,12 @@
-// src/pages/Profile.jsx
 import { useMemo, useState, useEffect } from "react";
 import { Row, Col, Card, Tab, Tabs, ListGroup, Spinner, Alert } from "react-bootstrap";
 import { useAuth } from "../state/AuthContext.jsx";
 import Favorites from "../components/profile/Favorites.jsx";
 import Reviews from "../components/profile/Reviews.jsx";
-import History from "../components/profile/History.jsx";
 import WatchLater from "../components/profile/WatchLater.jsx";
 import UpdateProfileForm from "../components/profile/UpdateProfileForm.jsx";
 import ChangePasswordForm from "../components/profile/ChangePasswordForm.jsx";
+import DeleteAccountCard from "../components/profile/DeleteAccountCard.jsx";
 import api from "../services/api";
 import { getToken } from "../services/token";
 import "../styles/profile.css";
@@ -89,13 +88,15 @@ export default function Profile() {
   const content = useMemo(() => {
     if (tab === "favorites") return <Favorites />;
     if (tab === "reviews") return <Reviews />;
-    if (tab === "history") return <History />;
     if (tab === "watchlater") return <WatchLater />;
     if (tab === "showtimes") return <MyGroupShowtimes />;
     return (
       <Row xs={1} md={2} className="g-3">
         <Col><UpdateProfileForm /></Col>
-        <Col><ChangePasswordForm /></Col>
+        <Col>
+          <ChangePasswordForm />
+          <DeleteAccountCard />
+        </Col>
       </Row>
     );
   }, [tab]);
@@ -104,12 +105,11 @@ export default function Profile() {
     <>
       <ProfileHeader user={user} />
       <Tabs activeKey={tab} onSelect={(k)=>setTab(k)} className="mb-3" justify>
-        <Tab eventKey="favorites" title="Favorites" />
-        <Tab eventKey="reviews"   title="Reviews" />
-        <Tab eventKey="history"   title="Recently Watched" />
+        <Tab eventKey="favorites"  title="Favorites" />
+        <Tab eventKey="reviews"    title="Reviews" />
         <Tab eventKey="watchlater" title="Watch Later" />
-        <Tab eventKey="showtimes" title="Showtimes" />
-        <Tab eventKey="settings"  title="Settings" />
+        <Tab eventKey="showtimes"  title="Showtimes" />
+        <Tab eventKey="settings"   title="Settings" />
       </Tabs>
       {content}
     </>

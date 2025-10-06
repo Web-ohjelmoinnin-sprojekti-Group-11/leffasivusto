@@ -1,4 +1,3 @@
-// server/controllers/authController.js
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import {
@@ -6,7 +5,8 @@ import {
   getUserByEmailFull,
   createUser,
   getUserPublicById,
-  deleteUserById,
+  // deleteUserById,        // ei käytetä enää
+  deleteUserDeep,           // transaktionaalinen syväpoisto
 } from "../models/authModel.js";
 import { issueSession } from "../helpers/session.js";
 import { signAccess } from "../utils/jwt.js";
@@ -108,7 +108,7 @@ export async function me(req, res) {
 /* DELETE /api/auth/delete  (verifyJWT middleware) */
 export async function remove(req, res) {
   try {
-    const n = await deleteUserById(req.user.user_id);
+    const n = await deleteUserDeep(req.user.user_id); // tärkeä muutos: syväpoisto
     if (!n) return res.status(404).json({ error: "User not found" });
 
     res.clearCookie("refreshToken", {
@@ -118,7 +118,7 @@ export async function remove(req, res) {
       path: "/",
     });
 
-    console.log(`DELETE: user_id=${req.user.user_id} removed`);
+    console.log(`DELETE: user_id=${req.user.user_id} deep-removed`);
     return res.json({ message: "User deleted successfully" });
   } catch (err) {
     console.error("Delete-virhe:", err);
