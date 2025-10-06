@@ -2,11 +2,10 @@ import { useState } from "react";
 import { Card, Button, Alert, Modal, Form } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../state/AuthContext.jsx";
-import { clearToken } from "../../services/token.js";
 import { profileApi } from "../../services/profileService.js";
 
 export default function DeleteAccountCard() {
-  const { user, setUser } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -25,8 +24,7 @@ export default function DeleteAccountCard() {
     setBusy(true);
     try {
       await profileApi.deleteAccount();   // DELETE /auth/delete
-      clearToken();
-      setUser?.(null);
+      await logout();                     // tyhjentää tokenin + userin
       setOk("Your account has been deleted.");
       setShow(false);
       navigate("/");
