@@ -50,7 +50,9 @@ CREATE TABLE IF NOT EXISTS showtimes (
 CREATE TABLE favorite_lists (
     favorite_list_id SERIAL PRIMARY KEY,
     user_id INT REFERENCES users(user_id) ON DELETE CASCADE,
-    name TEXT NOT NULL
+  name TEXT NOT NULL,
+  -- share_token: nullable unique token used to publish this list publicly
+  share_token TEXT UNIQUE
 );
 
 -- suosikkilistan sisältö

@@ -7,12 +7,14 @@ async function request(method, url, data) {
     const res = await api({ method, url, data })
     return res.data
   } catch (e) {
-    const msg =
-      e?.response?.data?.message ||
-      e?.response?.data?.error ||
-      e?.message ||
-      'Unknown error'
-    throw new Error(msg)
+    // Attach server response details when available to help debugging in UI
+    const serverMsg = e?.response?.data?.message || e?.response?.data?.error
+    const status = e?.response?.status
+    const msg = serverMsg || e?.message || 'Unknown error'
+    const err = new Error(msg)
+    if (status) err.status = status
+    if (e?.response?.data) err.serverData = e.response.data
+    throw err
   }
 }
 
@@ -23,7 +25,13 @@ export const profileApi = {
   changePassword: (body) => request('post', '/auth/change-password', body),
 
   // User data
-  getFavorites:   () => request('get',    '/user/favorites'),
+  getFavorites:   async () => {
+    const data = await request('get', '/user/favorites')
+    // normalize: some server responses return { favorites: [...] } while others
+    // may return the array directly. Always return an array to keep callers
+    // (useFavorites hook) simple.
+    return Array.isArray(data) ? data : (data?.favorites ?? [])
+  },
   addFavorite:    ({ movieId, ...rest }) => request('post',   '/user/favorites', { movieId, ...rest }),
   removeFavorite: (movieId) => request('delete', `/user/favorites/${movieId}`),
   getReviews:     () => request('get',    '/user/reviews'),
@@ -32,6 +40,9 @@ export const profileApi = {
   getWatchLater:  () => request('get',    '/user/watch-later'),
   addWatchLater:  ({ movieId, ...rest }) => request('post',   '/user/watch-later', { movieId, ...rest }),
   removeWatchLater: (movieId) => request('delete', `/user/watch-later/${movieId}`),
+  // Shareable favorites
+  getShareToken: () => request('get', '/user/favorites/share'),
+  manageShareToken: (body) => request('post', '/user/favorites/share', body),
 }
 
 export default profileApi

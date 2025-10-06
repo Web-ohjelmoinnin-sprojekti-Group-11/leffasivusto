@@ -83,4 +83,23 @@ git pull origin main
 git merge TEPPO_TESTI
 git push origin main
 ```
+ 
+---
+
+## Shareable favorites (uusi ominaisuus)
+
+Voit jakaa käyttäjän "Favorites"-listan julkisella linkillä. Ominaisuus on lisätty siten, että se ei poista olemassaolevaa toiminnallisuutta vaan toimii erillisenä komponenttina/prosessina.
+
+API-endpointit:
+- GET /api/user/favorites/share -> palauttaa { token: null | string } (vaatii auth)
+- POST /api/user/favorites/share { action: 'create' | 'remove''} -> luo tai poistaa tokenin (vaatii auth)
+- GET /api/share/:token -> julkinen reitti listan hakemiseen (ei vaadi auth)
+
+Frontend:
+- Profiili -> Favorites välilehdellä näkyy kenttä, josta käyttäjä voi luoda/poistaa ja kopioida linkin.
+- Julkinen reitti: /share/:token näyttää jaetun suosikkilistan julisteina (ei vaadi kirjautumista).
+
+Testaus:
+- Kirjaudu sisään, mene Profiili -> Favorites ja paina "Uudelleenluo / Jaa". Kopioi linkki ja avaa se incognito-ikkunassa ilman kirjautumista.
+
 
