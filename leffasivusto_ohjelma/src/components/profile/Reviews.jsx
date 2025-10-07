@@ -82,9 +82,10 @@ export default function Reviews() {
   if (err) return <Alert variant="danger">{err}</Alert>;
   if (!rows.length) return <div className="text-muted">No reviews yet.</div>;
 
-  return (
+   return (
     <>
-      <div className="row row-cols-2 row-cols-md-4 row-cols-lg-6 g-3">
+      {/* HUOM: lisätty gy-4 -> enemmän pystyväliä, mutta pidetään g-3 vaakagap */}
+      <div className="row row-cols-2 row-cols-md-4 row-cols-lg-6 g-3 gy-4">
         {rows.map(({ review, item }) => {
           const title = item.title || item.name || `Movie #${item.id}`;
           const poster = IMG(item.poster_path);
@@ -93,7 +94,7 @@ export default function Reviews() {
           return (
             <div className="col" key={review.review_id}>
               <div
-                className="h-100 card border-0 shadow-sm position-relative"
+                className="h-100 card border-0 shadow-sm position-relative d-flex"
                 role="button"
                 onClick={() => setSelected(item)}
               >
@@ -129,26 +130,28 @@ export default function Reviews() {
                 >
                   ⭐ {review.rating}/5
                 </span>
-              </div>
 
-              {/* Päivämäärä + Delete */}
-              <div className="d-flex align-items-center justify-content-between mt-1">
-                <small className="text-muted">{dateStr}</small>
-                <Button
-                  variant="outline-secondary"
-                  size="sm"
-                  onClick={() => remove(review.review_id)}
-                >
-                  Delete
-                </Button>
-              </div>
+                {/* ↓ Kaikki “alatekstit” kortin sisällä footerissa, tasainen pohja */}
+                <div className="card-footer bg-transparent border-0 pt-0 mt-auto">
+                  <div className="d-flex align-items-center justify-content-between">
+                    <small className="text-muted">{dateStr}</small>
+                    {/* estä modalin avautuminen deleteä klikatessa */}
+                    <Button
+                      variant="outline-secondary"
+                      size="sm"
+                      onClick={(e) => { e.stopPropagation(); remove(review.review_id); }}
+                    >
+                      Delete
+                    </Button>
+                  </div>
 
-              {/* Arvostelun teksti päivämäärän ALLE (lyhyt esikatselu) */}
-              {review.text && (
-                <div className="mt-1 small" style={CLAMP_STYLE} title={review.text}>
-                  {review.text}
+                  {review.text && (
+                    <div className="mt-1 small" style={CLAMP_STYLE} title={review.text}>
+                      {review.text}
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
           );
         })}
