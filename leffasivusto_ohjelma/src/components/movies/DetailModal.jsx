@@ -11,13 +11,14 @@ const IMG = (p, size = "w500") => (p ? `https://image.tmdb.org/t/p/${size}${p}` 
 /**
  * Props:
  * - show: boolean
- * - item: { id | tmdb_id, ... }
+ * - item: { id | tmdb_id | movie_id | movieId, ... }
  * - onHide: () => void
  * - groupId?: number|string            // if provided -> single "Add to this group" button
  * - onAddedToGroup?: () => void        // optional callback after successful add
  */
 export default function DetailModal({ show, item, onHide, groupId, onAddedToGroup }) {
-  const tmdbId = item?.id ?? item?.tmdb_id ?? null;
+  // 🔧 tärkeä muutos: ymmärtää myös movie_id / movieId
+  const tmdbId = item?.id ?? item?.tmdb_id ?? item?.movie_id ?? item?.movieId ?? null;
 
   // TMDB details
   const { data, loading, error } = useDetails(item);
@@ -234,7 +235,7 @@ export default function DetailModal({ show, item, onHide, groupId, onAddedToGrou
             </Card.Body>
           </Card>
 
-          {/* ✅ Community reviews – added back */}
+          {/* Community reviews */}
           {!!reviews.length && (
             <div className="mb-3">
               <h6 className="mt-2">Community reviews</h6>

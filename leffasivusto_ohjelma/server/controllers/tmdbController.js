@@ -1,6 +1,7 @@
 // server/controllers/tmdbController.js
 import {
-  fetchTrendingMoviesDay,
+  fetchTrending,                 // <-- yleinen trending (media/window/page)
+  fetchTrendingMoviesDay,        // (legacy) tarvittaessa muualla
   searchMulti,
   fetchTitleDetail,
   fetchTitleCredits,
@@ -11,10 +12,20 @@ import {
   discoverWithFilters,
 } from "../models/tmdbModel.js";
 
-/** GET /api/tmdb/trending */
-export async function trending(_req, res) {
+/** GET /api/tmdb/trending?media=movie&window=week&page=1 */
+export async function trending(req, res) {
   try {
-    const data = await fetchTrendingMoviesDay();
+    const media = (req.query.media || "movie").toString();
+    const window = (req.query.window || "week").toString();
+    const page = Math.max(1, Number(req.query.page || 1));
+
+    const data = await fetchTrending({ media, window, page });
+
+    // Ei välimuistia tälle reitille (sivu- ja aikaohjautuva sisältö)
+    res.set("Cache-Control", "no-store, no-cache, must-revalidate");
+    res.set("Pragma", "no-cache");
+    res.set("Expires", "0");
+
     res.json(data);
   } catch (err) {
     console.error("TMDB trending error:", err?.response?.data || err.message);
@@ -26,8 +37,9 @@ export async function trending(_req, res) {
 export async function search(req, res) {
   try {
     const q = (req.query.q || "").trim();
-    const page = Number(req.query.page || 1);
+    const page = Math.max(1, Number(req.query.page || 1));
     if (!q) return res.status(400).json({ error: "Query 'q' required" });
+
     const data = await searchMulti({ q, page });
     res.json(data);
   } catch (err) {
@@ -79,12 +91,14 @@ export async function personCredits(req, res) {
 /** GET /api/tmdb/discover?year=&minRating=&genres=&page= */
 export async function discover(req, res) {
   try {
-    const { year, minRating, genres, page = 1 } = req.query;
+    const { year, minRating, genres } = req.query;
+    const page = Math.max(1, Number(req.query.page || 1));
+
     const params = {
       sort_by: "popularity.desc",
       include_adult: false,
       include_video: false,
-      page: Number(page),
+      page,
       with_original_language: "en",
     };
     if (year) params.primary_release_year = Number(year);
@@ -92,6 +106,12 @@ export async function discover(req, res) {
     if (genres) params.with_genres = String(genres);
 
     const data = await discoverMovies(params);
+
+    // Ei välimuistia myöskään discoverille (etu- ja takasivutus + chunk-haku)
+    res.set("Cache-Control", "no-store, no-cache, must-revalidate");
+    res.set("Pragma", "no-cache");
+    res.set("Expires", "0");
+
     res.json(data);
   } catch (err) {
     console.error("TMDB discover error:", err?.response?.data || err.message);
@@ -177,7 +197,8 @@ export async function picker(req, res) {
 
       const maxPages = Math.min(first.total_pages || 1, 10);
       const randomPage = Math.max(1, Math.floor(Math.random() * maxPages) + 1);
-      const pageData = randomPage === 1 ? first : await discoverWithFilters({ ...a, page: randomPage });
+      const pageData =
+        randomPage === 1 ? first : await discoverWithFilters({ ...a, page: randomPage });
       chosen = pickRandom(pageData.results);
       if (chosen) break;
     }

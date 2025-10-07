@@ -1,4 +1,3 @@
-// src/hooks/useMovies.js
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { fetchTrending, fetchSearch } from "../controllers/movieController";
 
@@ -32,20 +31,33 @@ export function useMovies({ query = "", page = 1, enabled = true, filter } = {})
 
     try {
       if (isSearch) {
-        // Search: välitetään myös filter backendille (jos sellainen on)
-        const { results, totalPages: tp } = await fetchSearch(q, page, {
-          signal: controller.signal,
-          filter,
-        });
-        setMovies(results);
-        setTotalPages(tp || 1);
+        // --- SEARCH: hae chunk (5 sivua = ~100 tulosta) ja yhdistä ---
+        const CHUNK = 5;
+        const first = await fetchSearch(q, page, { signal: controller.signal, filter });
+        const tp = first?.totalPages || 1;
+
+        // Hae loput sivut rinnakkain
+        const end = Math.min(tp, page + CHUNK - 1);
+        const reqs = [];
+        for (let p = page + 1; p <= end; p++) {
+          reqs.push(fetchSearch(q, p, { signal: controller.signal, filter }));
+        }
+        const rest = await Promise.all(reqs);
+
+        // Yhdistä + dedupe id:llä
+        const all = [first, ...rest].flatMap(r => r?.results ?? []);
+        const byId = new Map();
+        for (const m of all) {
+          const id = Number(m?.id);
+          if (Number.isFinite(id) && !byId.has(id)) byId.set(id, m);
+        }
+
+        setMovies(Array.from(byId.values()));
+        setTotalPages(tp);
       } else {
-        // Trending: jos filteriä annettu -> pyydetään suodatettu trending backendiltä
-        const list = await fetchTrending({
-          signal: controller.signal,
-          filter,
-        });
-        setMovies(list);
+        // --- TRENDING: ~100 kpl pool (controller kasaa tämän puolestamme) ---
+        const list = await fetchTrending({ signal: controller.signal, filter, size: 100 });
+        setMovies(list || []);
         setTotalPages(1);
       }
     } catch (e) {
