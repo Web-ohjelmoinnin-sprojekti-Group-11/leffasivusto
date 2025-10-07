@@ -1,0 +1,23 @@
+/* Footer noudattaa teeman värejä */
+.site-footer {
+  background: var(--card);
+  border-top: 1px solid var(--border);
+  color: var(--fg);
+  padding: .9rem 0;
+}
+
+/* Linkit ja napit – teemayhteensopivat */
+.site-footer a {
+  color: var(--fg);
+  text-decoration: none;
+}
+.site-footer a:hover {
+  color: var(--primary);
+}
+
+/* Pieni responsiivinen hienosäätö */
+@media (max-width: 576px) {
+  .site-footer .container {
+    gap: .75rem;
+  }
+}

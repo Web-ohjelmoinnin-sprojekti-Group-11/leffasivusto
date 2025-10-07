@@ -1,19 +1,22 @@
-// src/main.jsx
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import App from './App.jsx'
+
+/* CSS-järjestys: Bootstrap → oma teema → perus- ja sivukohtaiset */
 import 'bootstrap/dist/css/bootstrap.min.css'
 import './styles/theme.css'
 import './index.css'
 import './styles/intro.css'
 import './styles/heroGreeting.css'
+import './styles/movies.css'
+import './styles/SiteFooter.css'   
+
 import { ThemeProvider } from './state/ThemeContext.jsx'
 import { AuthProvider } from './state/AuthContext.jsx'
 import { IntroProvider } from './state/IntroContext.jsx'
 import IntroFX from './components/intro/IntroFX.jsx'
-import './styles/movies.css'
 
 const queryClient = new QueryClient({
   defaultOptions: {
