@@ -1,3 +1,4 @@
+// src/pages/Movies.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useSearchMovies } from "../hooks/useMovies";
@@ -21,6 +22,15 @@ const isPerson = (m) => m.type === "person" || m.mediaType === "person";
 const dept = (m) => m.department || m.knownForDept || m.known_for_department || m.subtitle || "";
 const isActor = (m) => isPerson(m) && /Acting/i.test(dept(m));
 const isDirector = (m) => isPerson(m) && /Directing/i.test(dept(m));
+
+/* selkeämpi teksti tyhjätilaan */
+const FILTER_LABELS = {
+  all: "items",
+  movie: "movies",
+  tv: "series",
+  actor: "actors",
+  director: "directors",
+};
 
 export default function Movies() {
   const [params, setParams] = useSearchParams();
@@ -47,20 +57,18 @@ export default function Movies() {
 
   useEffect(() => {
     let cancelled = false;
-    // hook ajetaan aina, mutta tehdään haku vain kun ei olla haussa
     if (!isSearch) {
       (async () => {
         try {
           setTrendState((s) => ({ ...s, loading: true, error: "" }));
-          const list = await fetchTrending({ size: 100 }); // 5 sivua × 20
+          const list = await fetchTrending({ size: 100 });
           if (!cancelled) setTrendState({ movies: list || [], loading: false, error: "" });
         } catch (e) {
           if (!cancelled)
-            setTrendState({ movies: [], loading: false, error: "Elokuvien haku epäonnistui." });
+            setTrendState({ movies: [], loading: false, error: "Failed to load movies." });
         }
       })();
     } else {
-      // haussa tyhjennetään trendit, ettei jää vanhaa näkyviin
       setTrendState((s) => ({ ...s, movies: [] }));
     }
     return () => { cancelled = true; };
@@ -99,6 +107,9 @@ export default function Movies() {
     return filtered.slice().sort((a, b) => getTitle(a).localeCompare(getTitle(b)));
   }, [filtered, typeFilter, sortKey]);
 
+  // Tyhjätilan ehto (vain hakunäkymässä)
+  const noResults = isSearch && !loading && !error && sorted.length === 0;
+
   // Paginaatio vain haussa
   const gotoPage = (p) => {
     const next = Math.max(1, Math.min(totalPages || 1, p));
@@ -108,7 +119,7 @@ export default function Movies() {
 
   return (
     <div className="container-fluid px-4 py-4">
-      <h2 className="mb-3">{isSearch ? `Results for "${q}"` : "Elokuvat"}</h2>
+      <h2 className="mb-3">{isSearch ? `Results for "${q}"` : "Movies"}</h2>
 
       <SearchBar
         className="mb-3"
@@ -116,7 +127,7 @@ export default function Movies() {
         onSubmit={(query) => navigate(`/movies?q=${encodeURIComponent(query)}&page=1`)}
       />
 
-      {/* Tyyppisuodattimet */}
+      {/* Type filters */}
       <div className="d-flex flex-wrap gap-2 mb-3">
         {[
           { key: "all",      label: "All" },
@@ -135,7 +146,7 @@ export default function Movies() {
         ))}
       </div>
 
-      {/* Järjestys (vain Movies/Series) */}
+      {/* Sort (only Movies/Series) */}
       {(typeFilter === "movie" || typeFilter === "tv") && (
         <div className="d-flex flex-wrap align-items-center gap-2 mb-3">
           <span className="small text-muted">Sort by:</span>
@@ -162,13 +173,40 @@ export default function Movies() {
         </div>
       )}
 
-      {loading && <div>Ladataan…</div>}
+      {loading && <div>Loading…</div>}
       {error && <div className="text-danger">{error}</div>}
-      {!loading && !error && (
+
+      {/* ✅ Tyhjätila hakutuloksille */}
+      {noResults && (
+        <div
+          className="text-center text-muted my-5"
+          aria-live="polite"
+        >
+          <h5 className="mb-2">No {FILTER_LABELS[typeFilter]} found for “{q}”.</h5>
+          <p className="mb-3">Tips: use fewer keywords, check spelling, or change the type filter.</p>
+          <div className="d-flex justify-content-center gap-2">
+            <button
+              className="btn btn-outline-primary btn-sm"
+              onClick={() => setTypeFilter("all")}
+            >
+              Show all types
+            </button>
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={() => { setParams({}); navigate("/movies"); }}
+            >
+              Back to trending
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Tulokset */}
+      {!loading && !error && !noResults && (
         <MovieGrid movies={sorted} onSelect={(m) => setSelected(m)} />
       )}
 
-      {/* Nuolinapit sivutukseen (vain haussa) */}
+      {/* Pager (search only) */}
       {isSearch && totalPages > 1 && (
         <div className="pager-pink d-flex justify-content-center align-items-center gap-2 my-3">
           <button
