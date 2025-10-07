@@ -86,7 +86,8 @@ body { background-color: var(--bg); color: var(--fg); }
 }
 
 /* A11y: focus ring käyttää brand-sävyä */
-.btn:focus, .btn:focus-visible {
+.btn:focus,
+.btn:focus-visible {
   box-shadow: 0 0 0 .2rem rgba(var(--bs-primary-rgb), .35);
 }
 
@@ -127,4 +128,108 @@ body { background-color: var(--bg); color: var(--fg); }
   background-color: var(--primary) !important;
   border-color: var(--primary) !important;
   color: #fff !important;
+}
+
+/* === Filter chips (theme-colored) ========================= */
+.filter-chips .btn {
+  border-radius: 999px;
+  padding: .3rem .7rem;
+  font-weight: 500;
+}
+
+/* Käytä teeman primary-sävyä outline-napeissa */
+.filter-chips .btn-outline-primary {
+  --bs-btn-color: var(--primary);
+  --bs-btn-border-color: rgba(var(--bs-primary-rgb), .55);
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: var(--primary);
+  --bs-btn-hover-border-color: var(--primary);
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: var(--primary-600);
+  --bs-btn-active-border-color: var(--primary-600);
+  /* kevyt taustasävy jo lepotilassa */
+  background-color: rgba(var(--bs-primary-rgb), .08);
+}
+
+/* ButtonGroupin eka/vika pysyy pillinä */
+.filter-chips .btn-group > .btn:first-child {
+  border-top-left-radius: 999px;
+  border-bottom-left-radius: 999px;
+}
+.filter-chips .btn-group > .btn:last-child {
+  border-top-right-radius: 999px;
+  border-bottom-right-radius: 999px;
+}
+
+/* === Dark theme – better readability (force light text) ================== */
+/* Kohdistetaan vain tummaan teemaan: oletus :root = dark, pink on light. */
+:root:not([data-theme="pink"]) {
+  /* selkeämpi perus- ja toissijainen tekstiväri */
+  --fg: #e9edf7;
+  --bs-body-color: var(--fg);
+  --bs-heading-color: var(--fg);
+  --bs-emphasis-color: var(--fg);
+  --bs-secondary-color: rgba(233, 237, 247, .75);
+  --bs-tertiary-color: rgba(233, 237, 247, .6);
+}
+
+/* Yleisimmät komponentit käyttämään vaaleaa tekstiä */
+:root:not([data-theme="pink"]) h1,
+:root:not([data-theme="pink"]) h2,
+:root:not([data-theme="pink"]) h3,
+:root:not([data-theme="pink"]) h4,
+:root:not([data-theme="pink"]) h5,
+:root:not([data-theme="pink"]) h6,
+:root:not([data-theme="pink"]) p,
+:root:not([data-theme="pink"]) small,
+:root:not([data-theme="pink"]) label,
+:root:not([data-theme="pink"]) .form-label,
+:root:not([data-theme="pink"]) .card-title,
+:root:not([data-theme="pink"]) .card-text,
+:root:not([data-theme="pink"]) .modal-title,
+:root:not([data-theme="pink"]) .modal-body,
+:root:not([data-theme="pink"]) .nav-link,
+:root:not([data-theme="pink"]) .dropdown-item,
+:root:not([data-theme="pink"]) .list-group-item {
+  color: var(--fg) !important;
+}
+
+/* Placeholderit ja mutetut tekstit hieman vaaleammaksi */
+:root:not([data-theme="pink"]) .form-control::placeholder {
+  color: rgba(233, 237, 247, .55);
+}
+:root:not([data-theme="pink"]) .text-muted {
+  color: rgba(233, 237, 247, .7) !important;
+}
+
+/* Outline-secondary tummassa: vaaleat tekstit ja rajat */
+:root:not([data-theme="pink"]) .btn-outline-secondary {
+  --bs-btn-color: var(--fg);
+  --bs-btn-border-color: rgba(233, 237, 247, .35);
+  --bs-btn-hover-color: var(--bg);
+  --bs-btn-hover-bg: var(--fg);
+  --bs-btn-hover-border-color: var(--fg);
+  --bs-btn-active-color: var(--bg);
+  --bs-btn-active-bg: var(--fg);
+  --bs-btn-active-border-color: var(--fg);
+}
+
+/* Dropdownit ja valikot */
+:root:not([data-theme="pink"]) .dropdown-menu {
+  background-color: var(--card);
+  color: var(--fg);
+  border-color: var(--border);
+}
+:root:not([data-theme="pink"]) .dropdown-item:hover,
+:root:not([data-theme="pink"]) .dropdown-item:focus {
+  background-color: rgba(var(--bs-primary-rgb), .12);
+  color: var(--fg);
+}
+
+/* Form-kenttien teksti/ikonit */
+:root:not([data-theme="pink"]) .form-control,
+:root:not([data-theme="pink"]) .form-select {
+  color: var(--fg);
+  background-color: var(--bg);
+  border-color: var(--border);
 }
