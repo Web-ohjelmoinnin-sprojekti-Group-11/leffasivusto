@@ -1,9 +1,17 @@
 // server/models/tmdbModel.js
 import tmdb from "../utils/tmdb.js";
 
-/** Trending (movies, day) */
+/** Trending yleisfunktio: media=movie|tv, window=day|week, page=1..n */
+export async function fetchTrending({ media = "movie", window = "week", page = 1 } = {}) {
+  const { data } = await tmdb.get(`/trending/${media}/${window}`, {
+    params: { page: Number(page) || 1 },
+  });
+  return data;
+}
+
+/** (Legacy) Trending (movies, day) – säilytetään jos käytössä muualla */
 export async function fetchTrendingMoviesDay() {
-  const { data } = await tmdb.get("/trending/movie/day");
+  const { data } = await tmdb.get("/trending/movie/day", { params: { page: 1 } });
   return data;
 }
 

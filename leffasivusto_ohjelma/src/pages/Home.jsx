@@ -1,4 +1,3 @@
-// src/pages/Home.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { Row, Col, Card } from "react-bootstrap";
 import SidebarShowtimes from "../components/layout/SidebarShowtimes.jsx";
@@ -6,7 +5,7 @@ import FiltersBar from "../components/layout/FiltersBar.jsx";
 import MovieGrid from "../components/movies/MovieGrid.jsx";
 import HeroSection from "../components/layout/HeroSection.jsx";
 import { useIntro } from "../state/IntroContext.jsx";
-import { fetchTrending, fetchDiscover } from "../controllers/movieController";
+import { fetchTrending, fetchDiscover, fetchCurated } from "../controllers/movieController";
 import DetailModal from "../components/movies/DetailModal";
 
 /* apufunktiot lajitteluun */
@@ -25,8 +24,8 @@ export default function Home() {
   const [error, setError] = useState("");
   const [selected, setSelected] = useState(null);
 
-  // Discover – filtteri & sivutus
-  const [activeFilter, setActiveFilter] = useState(null); // { key, label, params }
+  // Discover/Curated – filtteri & sivutus
+  const [activeFilter, setActiveFilter] = useState(null); // { key, label, mode?, params }
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
@@ -42,16 +41,27 @@ export default function Home() {
       setError("");
       try {
         if (activeFilter) {
-          const { results, totalPages: tp } = await fetchDiscover({
-            ...(activeFilter.params || {}),
-            page,
-          });
-          if (!cancel) {
-            setMovies(results || []);
-            setTotalPages(tp || 1);
+          // Curated 100 (ei sivutusta)
+          if (activeFilter.mode === "curated") {
+            const { results } = await fetchCurated(activeFilter.params || {});
+            if (!cancel) {
+              setMovies(results || []);
+              setTotalPages(1);
+            }
+          } else {
+            // Discover (chunkattu sivutus)
+            const { results, totalPages: tp } = await fetchDiscover({
+              ...(activeFilter.params || {}),
+              page,
+            });
+            if (!cancel) {
+              setMovies(results || []);
+              setTotalPages(tp || 1);
+            }
           }
         } else {
-          const list = await fetchTrending();
+          // Trending 100
+          const list = await fetchTrending({ size: 100 });
           if (!cancel) {
             setMovies(list || []);
             setTotalPages(1);
@@ -72,7 +82,7 @@ export default function Home() {
     };
   }, [introDone, activeFilter, page]);
 
-  // Filtteri vaihtui → takaisin sivulle 1 ja laitetaan oletuslajittelu
+  // Filtteri vaihtui → takaisin sivulle 1 ja oletuslajittelu
   const handleFilterChange = (filter) => {
     setActiveFilter(filter);
     setPage(1);
@@ -81,7 +91,7 @@ export default function Home() {
 
   // Lajittelu (vain discover-näytössä)
   const sorted = useMemo(() => {
-    if (!activeFilter) return movies;
+    if (!activeFilter || activeFilter.mode === "curated") return movies;
     const s = movies.slice();
     if (sortKey === "year") s.sort((a, b) => getYear(b) - getYear(a));
     if (sortKey === "rating") s.sort((a, b) => getVote(b) - getVote(a));
@@ -107,7 +117,7 @@ export default function Home() {
       <div className="container-fluid px-0 reveal delay-1">
         <HeroSection
           showSearch
-          glowSweep  
+          glowSweep
           greetingText="Which movie shall we watch today?"
           greetingDurationMs={2500}
         />
@@ -132,7 +142,7 @@ export default function Home() {
               {activeFilter ? `${activeFilter.label} picks` : "Trending Movies"}
             </h5>
 
-            {activeFilter && (
+            {activeFilter && activeFilter.mode !== "curated" && (
               <div className="d-flex flex-wrap align-items-center gap-2 ms-auto">
                 <span className="small text-muted">Sort by:</span>
                 <div className="btn-group btn-group-sm" role="group">
@@ -169,9 +179,9 @@ export default function Home() {
               <>
                 <MovieGrid movies={sorted} onSelect={(m) => setSelected(m)} />
 
-                {/* Sivutus (vain discover) */}
-                {activeFilter && totalPages > 1 && (
-                    <div className="pager-pink d-flex align-items-center justify-content-center gap-2 my-4 flex-wrap">  
+                {/* Sivutus (vain Discover-tila) */}
+                {activeFilter && activeFilter.mode !== "curated" && totalPages > 1 && (
+                  <div className="pager-pink d-flex align-items-center justify-content-center gap-2 my-4 flex-wrap">
                     <button
                       className="btn btn-primary"
                       disabled={page === 1}
