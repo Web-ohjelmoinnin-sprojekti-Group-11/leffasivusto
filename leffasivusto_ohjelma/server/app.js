@@ -1,4 +1,3 @@
-// server/app.js
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
@@ -27,15 +26,17 @@ const origins = (process.env.CORS_ORIGIN || "http://localhost:5173")
   .split(",")
   .map((s) => s.trim());
 
+// Anna cors-kirjaston hoitaa preflight-allowedHeaders dynaamisesti
 const corsOptions = {
-  origin: origins, // esim. ["https://leffasivusto-front.onrender.com","http://localhost:5173"]
+  origin: origins,                    // esim. ["https://leffasivusto-front.onrender.com","http://localhost:5173"]
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  // HUOM: ei allowedHeaders-listaa → cors echoaa automaattisesti pyydetyt headerit,
+  // mikä korjaa virheet tyyliin "cache-control is not allowed according to preflight"
 };
 
 app.use(cors(corsOptions));
-app.options("*", cors(corsOptions)); // preflightit
+app.options("*", cors(corsOptions));   // preflightit
 
 app.use(express.json());
 app.use(cookieParser());
