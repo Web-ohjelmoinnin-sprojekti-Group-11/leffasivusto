@@ -8,23 +8,20 @@ const isProd = process.env.NODE_ENV === "production";
 export function setRefreshCookie(res, refreshToken) {
   res.cookie("refreshToken", refreshToken, {
     httpOnly: true,
-    secure: isProd,
-    sameSite: "strict",
-    path: "/",
+    secure: isProd,                    // Renderissä true
+    sameSite: isProd ? "none" : "lax", // cross-site → "none"
+    path: "/",                         // halutessa voi rajata '/api/auth'
     maxAge: msFrom(REFRESH_TTL),
   });
 }
 
-/**
- * Luo sessionin (access+refresh), asettaa refresh-cookien
- * ja palauttaa payloadin vastaukseen.
- */
+/** Luo session (AT+RT), aseta refresh-cookie ja palauta payload */
 export function issueSession(res, user, debugLabel = "SESSION") {
   const accessToken  = signAccess(user);
   const refreshToken = signRefresh(user);
   setRefreshCookie(res, refreshToken);
 
-  // DEBUG (helppo poistaa myöhemmin)
+  // (debug) poista kun ei enää tarvita
   console.log(`${debugLabel}: accessToken =`, accessToken);
   console.log(`${debugLabel}: refreshToken =`, refreshToken);
 

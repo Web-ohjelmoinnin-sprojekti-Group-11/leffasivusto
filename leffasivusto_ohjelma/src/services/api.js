@@ -2,15 +2,21 @@
 import axios from "axios";
 import { getToken, setToken, clearToken } from "./token";
 
+// Lue sekä VITE_API_BASE että VITE_API_BASE_URL (Render-kuvassa oli _URL)
+const BASE =
+  import.meta.env.VITE_API_BASE ||
+  import.meta.env.VITE_API_BASE_URL ||
+  "http://localhost:3001/api";
+
 // Perusinstanssi API-kutsuille
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE || "http://localhost:3001/api",
+  baseURL: BASE,
   withCredentials: true,
 });
 
 // Lisäinstanssi VAIN refreshiä varten (ei interceptoreita)
 const refreshClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE || "http://localhost:3001/api",
+  baseURL: BASE,
   withCredentials: true,
 });
 
@@ -24,7 +30,7 @@ api.interceptors.request.use((cfg) => {
   return cfg;
 });
 
-// 401 → yritä kertaalleen /auth/refresh (single-flight), toista alkuperäinen
+// 401 → /auth/refresh (single-flight)
 let refreshing = null;
 api.interceptors.response.use(
   (res) => res,
@@ -32,7 +38,6 @@ api.interceptors.response.use(
     const orig = error.config;
     const status = error?.response?.status;
 
-    // Älä yritä refreshiä itse refresh-kutsuun tai muihin kuin 401-virheisiin
     if (status !== 401 || orig?._retry || (orig?.url || "").includes("/auth/refresh")) {
       return Promise.reject(error);
     }
@@ -41,7 +46,6 @@ api.interceptors.response.use(
 
     try {
       if (!refreshing) {
-        // käytetään refreshClientiä → ei mene tämän interceptorin läpi
         refreshing = refreshClient.post("/auth/refresh");
       }
       const { data } = await refreshing;
@@ -51,8 +55,6 @@ api.interceptors.response.use(
       if (!newAT) throw new Error("No accessToken from refresh");
 
       setToken(newAT);
-
-      // toista alkuperäinen pyyntö uudella Authorizationilla
       orig.headers = orig.headers || {};
       orig.headers.Authorization = `Bearer ${newAT}`;
       return api(orig);

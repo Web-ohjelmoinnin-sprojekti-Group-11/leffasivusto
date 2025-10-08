@@ -1,3 +1,4 @@
+// server/app.js
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
@@ -12,7 +13,7 @@ import reviewsRouter from "./routes/reviews.js";
 import groupContentRouter from "./routes/groupContent.js";
 import groupShowtimesRouter from "./routes/groupShowtimes.js";
 import pickerRouter from "./routes/pickerRouter.js";
-import shareRouter from "./routes/share.js";              // ✅ julkinen share-reitti
+import shareRouter from "./routes/share.js";
 
 import pool from "./db.js";
 
@@ -21,11 +22,21 @@ const app = express();
 app.set("trust proxy", 1);
 app.disable("x-powered-by");
 
+// Sallitut originit (pilkulla eroteltu lista envissä)
 const origins = (process.env.CORS_ORIGIN || "http://localhost:5173")
   .split(",")
   .map((s) => s.trim());
 
-app.use(cors({ origin: origins, credentials: true }));
+const corsOptions = {
+  origin: origins, // esim. ["https://leffasivusto-front.onrender.com","http://localhost:5173"]
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
+
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions)); // preflightit
+
 app.use(express.json());
 app.use(cookieParser());
 
@@ -33,7 +44,7 @@ app.use(cookieParser());
 app.use("/api/auth", authRoutes);        // /register, /login, /logout, /delete
 app.use("/api/auth", authExtraRouter);   // /update, /change-password
 
-// Muu API (vaatii authia reittien sisällä tarpeen mukaan)
+// Muu API
 app.use("/api/tmdb", tmdbRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/reviews", reviewsRouter);
@@ -43,8 +54,8 @@ app.use("/api/group_content", groupContentRouter);
 app.use("/api/showtimes", groupShowtimesRouter);
 app.use("/api/picker", pickerRouter);
 
-// Julkinen suosikkilistan jako: /api/share/:token (ei authia)
-app.use("/api/share", shareRouter);      // ✅
+// Julkinen suosikkilistan jako: /api/share/:token
+app.use("/api/share", shareRouter);
 
 /* Healthcheck */
 app.get("/api/test", async (_req, res) => {
