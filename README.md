@@ -131,9 +131,16 @@ Automated REST API tests with Mocha + Chai cover:
 
 ## 👩‍💻 Team 11
 
-Developed at Oulu University of Applied Sciences, Autumn 2024.  
+Developed at **Oulu University of Applied Sciences**, Autumn 2024.  
 Frontend and backend built collaboratively by the team using GitHub and Scrum processes.
 
+- **Joonas Väyrynen**
+- **Tommi Järvenpää**
+- **Miro Hovi**  
+- **Antero Muunoja**
+
 ---
+
+**“All 15 required functionalities defined in the project instructions were implemented and demonstrated in the final presentation.”**
 
 ### 🩷 “Pink Baby Dragon Movie Hub – for those who watch together.”
