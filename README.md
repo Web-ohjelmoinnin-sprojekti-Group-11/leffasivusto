@@ -129,6 +129,30 @@ Automated REST API tests with Mocha + Chai cover:
 
 ---
 
+## ✅ Checklist of Required Functionalities (15/15)
+
+| ID | Functionality | Description | Status |
+|----|----------------|-------------|---------|
+| 1 | Responsiveness | The interface scales smoothly across all screen sizes using Bootstrap grid and custom CSS. | ✅ |
+| 2 | Registration | Users can create an account with email and validated password (8+ chars, one capital letter and number). | ✅ |
+| 3 | Login | JWT authentication with refresh tokens and cookie-based session. | ✅ |
+| 4 | Account deletion | User can permanently delete account; related data (reviews, favorites, groups) are removed (transactional deep delete). | ✅ |
+| 5 | Search | Search by title, person, or genre with multiple filter options. | ✅ |
+| 6 | Showtimes | Integrated Finnkino API for real-time theatre and showtime selection. | ✅ |
+| 7 | Group page | Users can create groups, visible to others, with movies added collaboratively. | ✅ |
+| 8 | Add member | Members can send and accept join requests to groups. | ✅ |
+| 9 | Remove member | Group admins can remove members from their groups. | ✅ |
+| 10 | Group customization | Group owners can manage their group content and details. | ✅ |
+| 11 | Movie reviews | Users can add text and star-rated reviews; community average rating is shown. | ✅ |
+| 12 | Review browsing | All reviews are visible under each movie’s details modal. | ✅ |
+| 13 | Favorites | Logged-in users can mark and view their favorite movies. | ✅ |
+| 14 | Sharing | Users can share movie links or group links with others. | ✅ |
+| 15 | Extra feature | Theme switcher (light/dark/pink) and random movie picker added. | ✅ |
+
+**All 15 required functionalities defined in the project instructions were implemented and demonstrated successfully.**
+
+---
+
 ## 👩‍💻 Team 11
 
 Developed at **Oulu University of Applied Sciences**, Autumn 2024.  
@@ -140,7 +164,5 @@ Frontend and backend built collaboratively by the team using GitHub and Scrum pr
 - **Antero Muunoja**
 
 ---
-
-**“All 15 required functionalities defined in the project instructions were implemented and demonstrated in the final presentation.”**
 
 ### 🩷 “Pink Baby Dragon Movie Hub – for those who watch together.”
