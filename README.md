@@ -156,6 +156,7 @@ Automated REST API tests with Mocha + Chai cover:
 ## 👩‍💻 Team 11
 
 Developed at **Oulu University of Applied Sciences**, Autumn 2024.  
+Study programme: **Information and Communication Technology (TVT24KMO)**  
 Frontend and backend built collaboratively by the team using GitHub and Scrum processes.
 
 - **Joonas Väyrynen**
