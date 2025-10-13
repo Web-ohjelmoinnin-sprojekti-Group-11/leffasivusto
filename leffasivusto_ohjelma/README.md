@@ -1,105 +1,139 @@
-# 🎬 Leffasivusto – kehityskäynnistys
+# 🎬 Pink Baby Dragon Movie Hub (PBDM)
 
-## 📦 Esivaatimukset
-- Node.js v18+  
-- npm  
+A full-stack **movie community web application** built with **React**, **Node.js/Express**, and **PostgreSQL**.  
+Created as part of the **Web Programming Project (Oulu University of Applied Sciences, Autumn 2024)**.
 
----
-
-## 🚀 Aloitus (ensimmäinen kerta / päivitys)
-
-1. Kloonaa tai päivitä repo:
-
-```bash
-git clone https://github.com/Web-ohjelmoinnin-sprojekti-Group-11/leffasivusto.git
-cd leffasivusto
-git pull origin main
-```
-
-2. Siirry projektin kansioon:
-
-```bash
-cd leffasivusto
-```
-
-3. Asenna riippuvuudet (riittää jatkossa pelkkä `npm install`):
-
-```bash
-npm install
-```
-
-4. Käynnistä dev-palvelin:
-
-```bash
-npm run dev
-```
+**Live demo:** [https://leffasivusto-front.onrender.com](https://leffasivusto-front.onrender.com)  
+**GitHub repo:** [Web-ohjelmoinnin-sprojekti-Group-11/leffasivusto](https://github.com/Web-ohjelmoinnin-sprojekti-Group-11/leffasivusto)
 
 ---
 
-## 🔑 Ympäristömuuttujat
-- `.env` (ei versionhallintaan)  
-- Löytyy esimerkki tiedostosta `.env.example`  
+## 🌟 Overview
+
+Pink Baby Dragon Movie Hub (PBDM) is a responsive movie platform for film lovers.  
+Users can register, search and review movies, create and customize groups, manage favorites and watch-later lists, and browse Finnkino showtimes.  
+The app combines **TMDB** and **Finnkino** open data APIs, with authentication handled via **JWT** + refresh tokens.
 
 ---
 
-## 🖥️ Git Bash ohjeet
+## 🖼️ User Interface Preview
 
-### 🔄 Päivitys (pull)
+### Home page
+![Home page](public/assets/etusivu.png)
 
-```bash
-git checkout main
-git pull origin main
-```
+### Movie details modal
+![Movie modal](public/assets/leffakortti.png)
 
-### 📤 Muutosten vieminen (push)
+### Search results
+![Search results](public/assets/haku.png)
 
-```bash
-git add .
-git commit -m "<kuvaus>"
-git push origin main
-```
+### Group view
+![Group page](public/assets/ryhmä.png)
 
-### 🌱 Uuden haaran luonti
+### Profile & settings
+![Profile setup](public/assets/profile_setup.png)
 
-```bash
-git checkout -b TEPPO_TESTI
-```
-
-### ☁️ Haaran vieminen GitHubiin
-
-```bash
-git add .
-git commit -m "kuvaus"
-git push origin TEPPO_TESTI
-```
-
-### 🔗 Haaran yhdistäminen (merge)
-
-Kun työ on valmis ja testattu:
-
-```bash
-git checkout main
-git pull origin main
-git merge TEPPO_TESTI
-git push origin main
-```
- 
 ---
 
-## Shareable favorites (uusi ominaisuus)
+## ⚙️ Technologies
 
-Voit jakaa käyttäjän "Favorites"-listan julkisella linkillä. Ominaisuus on lisätty siten, että se ei poista olemassaolevaa toiminnallisuutta vaan toimii erillisenä komponenttina/prosessina.
+**Frontend**
+- React (Vite)
+- React Router DOM (BrowserRouter)
+- Axios for HTTP requests
+- Bootstrap CSS
+- Declarative programming style, functional components and state hooks
 
-API-endpointit:
-- GET /api/user/favorites/share -> palauttaa { token: null | string } (vaatii auth)
-- POST /api/user/favorites/share { action: 'create' | 'remove''} -> luo tai poistaa tokenin (vaatii auth)
-- GET /api/share/:token -> julkinen reitti listan hakemiseen (ei vaadi auth)
+**Backend**
+- Node.js + Express
+- PostgreSQL with `pg`
+- JWT + bcrypt for authentication
+- Cookie-parser and CORS configuration
+- Mocha + Chai (Supertest) for REST API testing
+- MVC architecture (Model – Controller – View)
 
-Frontend:
-- Profiili -> Favorites välilehdellä näkyy kenttä, josta käyttäjä voi luoda/poistaa ja kopioida linkin.
-- Julkinen reitti: /share/:token näyttää jaetun suosikkilistan julisteina (ei vaadi kirjautumista).
+---
 
-Testaus:
-- Kirjaudu sisään, mene Profiili -> Favorites ja paina "Uudelleenluo / Jaa". Kopioi linkki ja avaa se incognito-ikkunassa ilman kirjautumista.
+## 🧩 Features
 
+| Category | Description |
+|-----------|-------------|
+| **Authentication** | Register, login, refresh token autologin, logout |
+| **Profile management** | Change email and password, delete account (deep delete removes all user data) |
+| **Search & Filters** | Search by title, actor, director + multi-filter system (year, rating, genre, collections) |
+| **Movie details** | TMDB integration with cast, director and rating information |
+| **Reviews** | Add text and 1-5 ⭐ rating; community average displayed |
+| **Groups** | Create groups, join requests, add or remove members, add movies to group page |
+| **Favorites & Watch-Later** | Personal lists visible on profile page |
+| **Finnkino showtimes** | Browse cinemas by city and date |
+| **Themes & UI** | Light/dark/pink theme switcher, random movie picker, responsive layout |
 
+---
+
+## 🗂️ Architecture
+
+The project follows **MVC** structure for clear separation of concerns:
+
+- **Model** – SQL queries and database logic (PostgreSQL)
+- **Controller** – Request handling, validation, and error management (Express)
+- **View** – React frontend rendering and state management
+- **Middleware** – Authentication and error handlers
+
+---
+
+## 🔐 Security
+
+- Passwords hashed with bcrypt  
+- Access tokens expire and are recycled (refresh token via cookies)  
+- Secure CORS and cookie settings between frontend and backend  
+- Auth middleware protects restricted routes  
+
+---
+
+## 🧪 Testing
+
+Automated REST API tests with Mocha + Chai cover:
+
+- User registration and login  
+- Logout and token verification  
+- Review retrieval  
+- Account deletion  
+
+---
+
+## 🧠 Scrum & Project Management
+
+- **Scrum methodology:** Product backlog, sprints, daily meetings, retrospectives  
+- **Documentation:**  
+  - Product backlog (PDF)  
+  - UI wireframes  
+  - Class diagram and REST documentation ([Postman collection](https://documenter.getpostman.com/view/41366007/2sB3QKsqMR))  
+  - Self & peer assessment form  
+
+---
+
+## 🚀 Deployment
+
+- **Frontend:** React (Vite) deployed on Render  
+- **Backend:** Express API + PostgreSQL deployed on Render  
+- **Environment variables:** stored in `.env` (not committed)  
+
+---
+
+## 💡 Future Improvements
+
+- AI-based movie recommendations  
+- Comment threads under reviews  
+- User-uploaded avatars  
+- Group chat and notifications  
+
+---
+
+## 👩‍💻 Team 11
+
+Developed at Oulu University of Applied Sciences, Autumn 2024.  
+Frontend and backend built collaboratively by the team using GitHub and Scrum processes.
+
+---
+
+### 🩷 “Pink Baby Dragon Movie Hub – for those who watch together.”
