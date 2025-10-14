@@ -11,6 +11,12 @@ import {
 import { issueSession } from "../helpers/session.js";
 import { signAccess } from "../utils/jwt.js";
 
+/* ---------- Salasanapolitiikka ---------- */
+// Vähintään 8 merkkiä, vähintään yksi ISO kirjain ja yksi numero
+function isStrongPassword(pw) {
+  return /^(?=.*[A-Z])(?=.*\d).{8,}$/.test(String(pw || ""));
+}
+
 /* ---------- Wrapper testejä varten ---------- */
 function wrapForTests(user, payload, action) {
   if (process.env.NODE_ENV === "test") {
@@ -36,8 +42,16 @@ function wrapForTests(user, payload, action) {
 export async function register(req, res) {
   const { email, password } = req.body || {};
   if (!email || !password) return res.status(400).json({ error: "Server error" });
+
   const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email));
   if (!emailOk) return res.status(400).json({ error: "Server error" });
+
+  // UUSI: salasanan vahvuusvaatimus vain uusille rekisteröitymisille
+  if (!isStrongPassword(password)) {
+    return res.status(400).json({
+      error: "Salasanan tulee olla vähintään 8 merkkiä ja sisältää vähintään yhden ison kirjaimen ja numeron."
+    });
+  }
 
   try {
     if (await emailExists(email)) {
