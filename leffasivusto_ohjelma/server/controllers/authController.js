@@ -5,8 +5,7 @@ import {
   getUserByEmailFull,
   createUser,
   getUserPublicById,
-  // deleteUserById,        // ei käytetä enää
-  deleteUserDeep,           // transaktionaalinen syväpoisto
+  deleteUserDeep,
 } from "../models/authModel.js";
 import { issueSession } from "../helpers/session.js";
 import { signAccess } from "../utils/jwt.js";
@@ -44,7 +43,7 @@ export async function register(req, res) {
   if (!email || !password) return res.status(400).json({ error: "Server error" });
 
   const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email));
-  if (!emailOk) return res.status(400).json({ error: "Server error" });
+  if (!emailOk) return res.status(400).json({ error: "Invalid email format" });
 
   // UUSI: salasanan vahvuusvaatimus vain uusille rekisteröitymisille
   if (!isStrongPassword(password)) {
@@ -73,11 +72,13 @@ export async function login(req, res) {
   try {
     const user = await getUserByEmailFull(email);
     if (!user) {
-      return res.status(400).json({ error: "Virheellinen sähköposti tai salasana" });
+      // 🔹 MUUTOS: väärä tunnus tai salasana -> 401
+      return res.status(401).json({ error: "Virheellinen sähköposti tai salasana" });
     }
     const ok = await bcrypt.compare(String(password), user.password_hash);
     if (!ok) {
-      return res.status(400).json({ error: "Virheellinen sähköposti tai salasana" });
+      // 🔹 MUUTOS: väärä salasana -> 401
+      return res.status(401).json({ error: "Virheellinen sähköposti tai salasana" });
     }
     const payload = issueSession(res, user, "LOGIN");
     return res.json(wrapForTests(user, payload, "LOGIN"));
@@ -101,7 +102,13 @@ export async function refresh(req, res) {
 }
 
 /* POST /api/auth/logout */
-export async function logout(_req, res) {
+export async function logout(req, res) {
+  // 🔹 MUUTOS: jos tokenia ei ole, palautetaan 401
+  const authHeader = req.headers['authorization'];
+  if (!authHeader) {
+    return res.status(401).json({ error: "Token required" });
+  }
+
   res.clearCookie("refreshToken", { path: "/" });
   console.log("LOGOUT: refreshToken cleared");
   return res.json({ message: "Logout successful" });
@@ -122,7 +129,7 @@ export async function me(req, res) {
 /* DELETE /api/auth/delete  (verifyJWT middleware) */
 export async function remove(req, res) {
   try {
-    const n = await deleteUserDeep(req.user.user_id); // tärkeä muutos: syväpoisto
+    const n = await deleteUserDeep(req.user.user_id);
     if (!n) return res.status(404).json({ error: "User not found" });
 
     res.clearCookie("refreshToken", {

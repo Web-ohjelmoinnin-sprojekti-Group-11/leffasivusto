@@ -13,14 +13,14 @@ import runMigrations from "./migrations/run.js";
 
 const PORT = process.env.PORT || 3001;
 
-// Run migrations first, then start listening
+// Run migrations first, but do not start the server here for testing purposes
 runMigrations()
   .then(() => {
-    app.listen(PORT, () => {
-      console.log(`Server running on http://localhost:${PORT}`);
-    });
+    console.log('Migrations applied');
   })
   .catch((err) => {
     console.error('Startup migration failed:', err);
     process.exit(1);
   });
+
+export default app;  // Tämä pitää exportata sovellus
