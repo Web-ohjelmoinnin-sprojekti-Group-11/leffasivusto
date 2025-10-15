@@ -1,7 +1,7 @@
 # 🎬 Pink Baby Dragon Movie Hub (PBDM)
 
 A full-stack **movie community web application** built with **React**, **Node.js/Express**, and **PostgreSQL**.  
-Created as part of the **Web Programming Project (Oulu University of Applied Sciences, Autumn 2024)**.
+Created as part of the **Web Programming Project (Oulu University of Applied Sciences, Autumn 2025)**.
 
 **Live demo:** [https://leffasivusto-front.onrender.com](https://leffasivusto-front.onrender.com)  
 **GitHub repo:** [Web-ohjelmoinnin-sprojekti-Group-11/leffasivusto](https://github.com/Web-ohjelmoinnin-sprojekti-Group-11/leffasivusto)
