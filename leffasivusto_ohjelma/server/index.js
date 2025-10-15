@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
 
-// Load server/.env explicitly (preferred) so tokens kept in server/.env are available
+// Lataa nimenomaan server/.env
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, ".env") });
@@ -13,14 +13,20 @@ import runMigrations from "./migrations/run.js";
 
 const PORT = process.env.PORT || 3001;
 
-// Run migrations first, but do not start the server here for testing purposes
 runMigrations()
   .then(() => {
-    console.log('Migrations applied');
+    console.log("Migrations applied");
+
+    // Älä kuuntele porteissa testimoodissa (Supertest ym.)
+    if (process.env.NODE_ENV !== "test") {
+      app.listen(PORT, () => {
+        console.log(`API listening on http://localhost:${PORT}`);
+      });
+    }
   })
   .catch((err) => {
-    console.error('Startup migration failed:', err);
+    console.error("Startup migration failed:", err);
     process.exit(1);
   });
 
-export default app;  // Tämä pitää exportata sovellus
+export default app; // jätetään tämä, jotta testit voivat importata appin
