@@ -1,4 +1,4 @@
-// src/pages/ShareFavorites.jsx
+// src/pages/SharedFavorites.jsx
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Spinner, Alert } from "react-bootstrap";
@@ -9,7 +9,11 @@ import { getTitleDetails } from "../services/movieService";
 const IMG = (p, size = "w500") => (p ? `https://image.tmdb.org/t/p/${size}${p}` : null);
 
 export default function SharedFavorites() {
-  const { token } = useParams();
+  // nappaa joko :token tai koko loppupolku (*), jotta myös "/" sisältävät tokenit toimivat
+  const params = useParams();
+  const tokenRaw = params.token ?? params["*"] ?? "";
+  const token = decodeURIComponent(tokenRaw);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [movies, setMovies] = useState([]);
@@ -20,19 +24,16 @@ export default function SharedFavorites() {
       setLoading(true);
       setError("");
       try {
-        // public endpoint, ei tarvitse lähettää credentials/cookiea
+        // public endpoint (ei cookiea)
         const res = await api.get(`/share/${encodeURIComponent(token)}`, { withCredentials: false });
-        // BACKEND PALAUTTAA: { movies: ["1054867","911430", ...] }
         const ids = Array.isArray(res.data?.movies) ? res.data.movies : [];
 
-        // Nouda minimitiedot rinnakkain
         const details = await Promise.all(
-          ids.map((raw) => {
-            const idNum = Number(raw); // TMDB movie id toimii numerona
-            return getTitleDetails("movie", idNum)
+          ids.map((raw) =>
+            getTitleDetails("movie", Number(raw))
               .then((d) => d?.detail || null)
-              .catch(() => null);
-          })
+              .catch(() => null)
+          )
         );
 
         const mapped = details
@@ -53,9 +54,7 @@ export default function SharedFavorites() {
       }
     })();
 
-    return () => {
-      mounted = false;
-    };
+    return () => { mounted = false; };
   }, [token]);
 
   if (loading) return <div className="py-3"><Spinner animation="border" size="sm" /> <span className="ms-2">Loading…</span></div>;

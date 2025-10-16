@@ -10,7 +10,6 @@ import CreateGroup from "../pages/Groups/CreateGroup.jsx";
 import GroupList from "../pages/Groups/GroupList.jsx";
 import GroupDetail from "../pages/Groups/GroupDetail.jsx";
 
-
 export default function AppRoutes() {
   return (
     <Routes>
@@ -51,12 +50,16 @@ export default function AppRoutes() {
           </RequireAuth>
         }
       />
-      {/* Public shared favorites */}
+
+      {/* Public shared favorites – kaksi reittiä:
+         - /share/:token  (URL-safe tokenit)
+         - /share/*       (tokenit joissa on esim. "/")
+      */}
       <Route path="/share/:token" element={<SharedFavorites />} />
+      <Route path="/share/*" element={<SharedFavorites />} />
 
       <Route path="/404" element={<NotFound />} />
       <Route path="*" element={<Navigate to="/404" replace />} />
     </Routes>
   );
 }
-

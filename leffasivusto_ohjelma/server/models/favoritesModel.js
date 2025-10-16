@@ -44,11 +44,10 @@ export async function removeShareToken(userId) {
 }
 
 /**
- * Luo uniikin share_tokenin.
+ * Luo uniikin share_tokenin (URL-safe).
  * 1) Jos token on jo olemassa -> palauta (idempotentti).
- * 2) Yritä generoida PG:n sisällä (pgcrypto/gen_random_bytes) atomisesti.
- * 3) Jos pgcrypto puuttuu -> fallback Node-cryptoon (randomBytes).
- * Molemmissa retryt 23505-UNIQUE -törmäyksessä.
+ * 2) Yritä generoida PG:ssä (pgcrypto) URL-safe -muotoon atomisesti.
+ * 3) Jos pgcrypto puuttuu -> fallback Node-cryptoon (randomBytes->base64url).
  */
 export async function createUniqueShareToken(userId, maxAttempts = 8) {
   await getOrCreateDefaultFavoriteList(userId);
@@ -62,7 +61,7 @@ export async function createUniqueShareToken(userId, maxAttempts = 8) {
   );
   if (existing.rows[0]?.share_token) return existing.rows[0].share_token;
 
-  // --- 1) PG sisäinen generointi (pgcrypto) ---
+  // --- 1) PG sisäinen generointi (pgcrypto) URL-safe ----
   try {
     const client = await pool.connect();
     try {
@@ -74,7 +73,13 @@ export async function createUniqueShareToken(userId, maxAttempts = 8) {
           const { rows } = await client.query(
             `
             WITH newtok AS (
-              SELECT encode(gen_random_bytes(24), 'base64')::text AS token
+              SELECT
+                /* base64 -> korvaa +/ -> -_ ja poista = lopusta */
+                regexp_replace(
+                  translate(encode(gen_random_bytes(24), 'base64'), '+/', '-_'),
+                  '=+$',
+                  ''
+                ) AS token
             )
             UPDATE favorite_lists fl
                SET share_token = (SELECT token FROM newtok)
@@ -87,7 +92,6 @@ export async function createUniqueShareToken(userId, maxAttempts = 8) {
           );
           if (rows[0]?.share_token) { token = rows[0].share_token; break; }
 
-          // joku ehti asettaa -> palauta olemassa oleva
           const got = await client.query(
             `SELECT share_token FROM favorite_lists
               WHERE user_id = $1 AND name = 'Favorites'
@@ -104,7 +108,6 @@ export async function createUniqueShareToken(userId, maxAttempts = 8) {
       await client.query("COMMIT");
       if (token) return token;
 
-      // varmistus
       const final = await pool.query(
         `SELECT share_token FROM favorite_lists
           WHERE user_id = $1 AND name = 'Favorites'
@@ -125,7 +128,7 @@ export async function createUniqueShareToken(userId, maxAttempts = 8) {
     if (pgErr?.code !== "42883") throw pgErr;
   }
 
-  // --- 2) Fallback: Node-crypto ---
+  // --- 2) Fallback: Node-crypto (URL-safe base64url) ---
   let lastErr = null;
   for (let i = 0; i < maxAttempts; i++) {
     const token = crypto.randomBytes(24).toString("base64url");
